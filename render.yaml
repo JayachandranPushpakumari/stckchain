@@ -1,0 +1,21 @@
+databases:
+  - name: stockdb
+    databaseName: stockDB
+    user: postgres
+    plan: free
+
+services:
+  - type: web
+    name: stockchain-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: stockdb
+          property: connectionString
+      - key: ALLOWED_ORIGINS
+        value: https://YOUR_GODADDY_DOMAIN.com

@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+pandas
+yfinance
+ta-lib
+ta
+python-dotenv
+openpyxl

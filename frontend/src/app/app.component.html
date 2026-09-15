@@ -1,0 +1,492 @@
+<main class="page">
+  <section class="hero" *ngIf="!chartOnlyMode">
+    <div>
+      <p class="eyebrow">StockChain</p>
+      <h1>Swing Screener</h1>
+      <p class="subtitle">
+        Fundamental high-conviction picks, refreshed on demand.
+      </p>
+    </div>
+
+    <button class="refresh-btn" (click)="onRefreshClick()" [disabled]="loading || breakoutLoading">
+      {{ loading || breakoutLoading ? 'Refreshing...' : 'Refresh Data' }}
+    </button>
+  </section>
+
+  <section class="tabs" *ngIf="!chartOnlyMode">
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'swing'"
+      (click)="setActiveTab('swing')"
+    >
+      Swing Screener
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'breakout'"
+      [class.attention]="activeTab !== 'breakout' && !breakoutLoading && !breakoutError && breakoutStocks.length > 0"
+      (click)="setActiveTab('breakout')"
+    >
+      Breakouts
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'heatmap'"
+      (click)="setActiveTab('heatmap')"
+    >
+      Sector
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'seasonality'"
+      (click)="setActiveTab('seasonality')"
+    >
+      Seasonality
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'backtest'"
+      (click)="setActiveTab('backtest'); loadBacktestData()"
+    >
+      Backtest Results
+    </button>
+  </section>
+
+  <section class="stats" *ngIf="!chartOnlyMode && activeTab === 'swing' && !error && stocks.length">
+    <article class="stat">
+      <p>Showing</p>
+      <h2>{{ visibleStocks.length }} / {{ stocks.length }}</h2>
+    </article>
+    <article class="stat">
+      <p>Average Score</p>
+      <h2>{{ avgScore }}</h2>
+    </article>
+  </section>
+
+  <section class="controls" *ngIf="!chartOnlyMode && activeTab === 'swing' && !error && stocks.length">
+    <label>
+      <span>Search Symbol</span>
+      <input
+        type="search"
+        placeholder="Type symbol..."
+        [value]="searchQuery"
+        (input)="onSearch($event)"
+      />
+    </label>
+
+    <label>
+      <span>Minimum Score</span>
+      <select [value]="scoreFilterOption" (change)="onScoreFilterChange($event)">
+        <option value="all">All Scores</option>
+        <option value="90">90 and above</option>
+        <option value="80">80 and above</option>
+        <option value="70">70 and above</option>
+        <option value="60">60 and above</option>
+      </select>
+    </label>
+
+    <label>
+      <span>Sort By</span>
+      <select [value]="sortOption" (change)="onSortChange($event)">
+        <option value="scoreDesc">Score: High to Low</option>
+        <option value="scoreAsc">Score: Low to High</option>
+        <option value="symbolAsc">Symbol: A to Z</option>
+        <option value="symbolDesc">Symbol: Z to A</option>
+        <option value="promoterHolding">Increased Promoter Holding</option>
+        <option value="breakoutOverlap">Breakout Overlap</option>
+        <option value="sectorLeader">Sector Leader</option>
+      </select>
+    </label>
+  </section>
+
+  <p class="state" *ngIf="!chartOnlyMode && activeTab === 'swing' && loading && !stocks.length">Loading swing screen...</p>
+  <p class="state error" *ngIf="!chartOnlyMode && activeTab === 'swing' && error">{{ error }}</p>
+  <p class="state" *ngIf="!chartOnlyMode && activeTab === 'swing' && !loading && !error && !stocks.length">No stocks matched the screener criteria yet.</p>
+  <p class="state" *ngIf="!chartOnlyMode && activeTab === 'swing' && !error && stocks.length && !visibleStocks.length">
+    No symbols match your current search.
+  </p>
+
+  <p class="state error" *ngIf="chartOnlyMode && !selectedSwingSymbol && swingChartError">{{ swingChartError }}</p>
+
+  <section class="chart-panel" *ngIf="selectedSwingSymbol && (chartOnlyMode || activeTab === 'swing')">
+    <div class="chart-head">
+      <div>
+        <h2>{{ selectedSwingSymbol }} Price Chart</h2>
+        <p class="muted">Frequency: 1D</p>
+      </div>
+      <button type="button" class="chart-close" (click)="closeSwingChart()">Close</button>
+    </div>
+
+    <p class="state" *ngIf="swingChartLoading">Loading 1D chart...</p>
+    <p class="state error" *ngIf="swingChartError">{{ swingChartError }}</p>
+
+    <div class="chart-body" *ngIf="!swingChartLoading && !swingChartError && hasSwingChartData">
+      <div class="chart-meta">
+        <p><span>From</span><strong>{{ swingChartStartDate }}</strong></p>
+        <p><span>To</span><strong>{{ swingChartEndDate }}</strong></p>
+        <p><span>Latest Close</span><strong>{{ swingChartLatestClose | number: '1.2-2' }}</strong></p>
+      </div>
+
+      <svg class="price-chart" viewBox="0 0 960 320" preserveAspectRatio="none">
+        <polyline [attr.points]="swingChartPolylinePoints"></polyline>
+      </svg>
+
+      <div class="chart-range">
+        <span>Low: {{ swingChartLow | number: '1.2-2' }}</span>
+        <span>High: {{ swingChartHigh | number: '1.2-2' }}</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid" [style.display]="activeTab === 'swing' ? null : 'none'" *ngIf="!chartOnlyMode && !error && displayedStocks.length">
+    <button
+      type="button"
+      class="card swing-card"
+      [class.breakout-overlap-pulse]="shouldPulseSwingCard(stock)"
+      *ngFor="let stock of displayedStocks; trackBy: trackBySymbol"
+      (click)="openSwingChartInNewTab(stock.symbol)"
+    >
+      <div class="card-head">
+        <h3>
+          {{ stock.symbol }}
+          <span class="symbol-close" *ngIf="stock.latest_close !== null; else closeUnavailable">
+            ₹{{ stock.latest_close | number: '1.2-2' }}
+          </span>
+          <ng-template #closeUnavailable>
+            <span class="symbol-close symbol-close-empty">N/A</span>
+          </ng-template>
+        </h3>
+        <div class="card-badges">
+          <span class="badge">{{ scoreLabel(stock.total_score) }}</span>
+          <span class="badge" *ngIf="stock.sector">{{ stock.sector }}</span>
+          <span class="badge overlap-badge" *ngIf="hasBreakoutOverlap(stock)">Breakout overlap</span>
+          <span class="badge sector-leader-badge" *ngIf="isSectorLeader(stock)">Sector Leader</span>
+          <span class="badge promoter-badge" *ngIf="hasIncreasedPromoterHolding(stock)">Increased Promoter Holding</span>
+        </div>
+      </div>
+
+      <div class="score-row">
+        <div class="ring" [style.--score]="stock.total_score">
+          <span>{{ stock.total_score }}</span>
+        </div>
+        <div>
+          <p class="muted">Fundamental Score</p>
+          <p class="muted">Threshold: 90+</p>
+        </div>
+      </div>
+
+      <div class="factors">
+        <p *ngFor="let factor of stock.category_scores | keyvalue">
+          <span>{{ factor.key.replaceAll('_', ' ') }}</span>
+          <strong>
+            {{ formatCriterionDisplay(factor.value) }}
+            <i class="criterion-dot" [class.pass]="isCriterionPass(factor.value)" [class.fail]="!isCriterionPass(factor.value)"></i>
+          </strong>
+        </p>
+      </div>
+    </button>
+  </section>
+
+  <div class="show-more-wrap" *ngIf="!chartOnlyMode && activeTab === 'swing' && !error && hasMoreSwingStocks">
+    <button type="button" class="show-more-btn" *ngIf="!showAllStocks" (click)="onShowMoreStocks()">
+      Show More
+    </button>
+    <button type="button" class="show-more-btn" *ngIf="showAllStocks" (click)="onShowLessStocks()">
+      Show Less
+    </button>
+  </div>
+
+  <section class="breakout-section" [style.display]="activeTab === 'breakout' ? null : 'none'" *ngIf="!chartOnlyMode">
+    <section class="subhead breakout-subhead">
+      <div>
+        <h2>Breakout Stocks</h2>
+      </div>
+      <span class="breakout-count" *ngIf="!breakoutLoading && !breakoutError">
+        {{ breakoutStocks.length }} setup{{ breakoutStocks.length === 1 ? '' : 's' }}
+      </span>
+    </section>
+
+    <p class="state" *ngIf="breakoutLoading">Loading breakout screen...</p>
+    <p class="state error" *ngIf="breakoutError">{{ breakoutError }}</p>
+    <p class="state" *ngIf="!breakoutLoading && !breakoutError && !breakoutStocks.length">
+      No breakout stocks found right now.
+    </p>
+
+    <section class="grid breakout-grid" *ngIf="!breakoutLoading && !breakoutError && breakoutStocks.length">
+      <article class="card breakout-card" *ngFor="let stock of breakoutStocks; trackBy: trackByBreakoutSymbol">
+        <div class="card-head">
+          <h3>{{ stock.symbol }}</h3>
+          <span class="badge breakout-badge">{{ stock.signal }}</span>
+        </div>
+
+        <div class="breakout-metrics">
+          <p><span>Close</span><strong>₹{{ stock.close }}</strong></p>
+          <p><span>RSI</span><strong>{{ stock.rsi }}</strong></p>
+          <p><span>Volume Ratio</span><strong>{{ stock.volume_ratio }}</strong></p>
+          <p><span>MA20</span><strong>₹{{ stock.ma20 }}</strong></p>
+          <p><span>MA50</span><strong>₹{{ stock.ma50 }}</strong></p>
+          <p><span>High (20D)</span><strong>₹{{ stock.high_20 }}</strong></p>
+          <p><span>ADX</span><strong>{{ stock.adx }}</strong></p>
+        </div>
+      </article>
+    </section>
+  </section>
+
+  <section class="heatmap-section" *ngIf="!chartOnlyMode && activeTab === 'heatmap'">
+    <section class="subhead heatmap-subhead">
+      <div>
+        <h2>Sector Rotation Dashboard</h2>
+        <p class="subtitle">Sector rank across periods with relative strength score</p>
+      </div>
+      <label>
+        <span>Period</span>
+        <select [value]="selectedSectorPeriod" (change)="onSectorPeriodChange($event)">
+          <option *ngFor="let option of sectorPeriodOptions" [value]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+    </section>
+
+    <p class="state" *ngIf="sectorRotationLoading">Loading sector rotation dashboard...</p>
+    <p class="state error" *ngIf="sectorRotationError">{{ sectorRotationError }}</p>
+    <p class="state" *ngIf="!sectorRotationLoading && !sectorRotationError && !sectorRotationRanks.length">
+      No sector rotation data available.
+    </p>
+
+    <section class="sector-rotation-card" *ngIf="!sectorRotationLoading && !sectorRotationError && sectorRotationRanks.length">
+      <div class="sector-rotation-title">
+        <span>Sector Rotation Dashboard</span>
+      </div>
+
+      <div class="sector-rotation-table-wrap">
+        <table class="sector-rotation-table">
+          <thead>
+            <tr>
+              <th>Sector</th>
+              <th>1D</th>
+              <th>1W</th>
+              <th>1M</th>
+              <th>3M</th>
+              <th>6M</th>
+              <th>Momentum</th>
+              <th>Relative Strength</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of sectorRotationRanks; trackBy: trackBySector">
+              <td>
+                <strong>{{ row.sector }}</strong>
+              </td>
+              <td>{{ row['1d'] || '-' }}</td>
+              <td>{{ row['1w'] || '-' }}</td>
+              <td>{{ row['1m'] || '-' }}</td>
+              <td>{{ row['3m'] || '-' }}</td>
+              <td>{{ row['6m'] || '-' }}</td>
+              <td>
+                <span
+                  class="momentum-change"
+                  [class.positive]="row.momentum_change > 0"
+                  [class.negative]="row.momentum_change < 0"
+                >
+                  {{ row.momentum_change > 0 ? '+' : '' }}{{ row.momentum_change }}
+                </span>
+              </td>
+              <td>
+                <span class="rs-score" [style.--score]="row.score">
+                  {{ row.score }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="subhead heatmap-subhead heatmap-grid-subhead">
+      <div>
+        <h2>Sector Heatmap</h2>
+        <p class="subtitle">Click a sector to view top stocks for the selected period</p>
+      </div>
+    </section>
+
+    <p class="state" *ngIf="sectorHeatmapLoading">Loading sector heatmap...</p>
+    <p class="state error" *ngIf="sectorHeatmapError">{{ sectorHeatmapError }}</p>
+    <p class="state" *ngIf="!sectorHeatmapLoading && !sectorHeatmapError && !sectorHeatmapSectors.length">
+      No sector heatmap data available.
+    </p>
+
+    <app-sector-heatmap
+      *ngIf="!sectorHeatmapLoading && !sectorHeatmapError && sectorHeatmapSectors.length"
+      [sectors]="sectorHeatmapSectors"
+      [selectedPeriod]="selectedSectorPeriod"
+    ></app-sector-heatmap>
+  </section>
+
+  <section class="backtest-section" [style.display]="activeTab === 'backtest' ? null : 'none'" *ngIf="!chartOnlyMode">
+    <section class="subhead backtest-subhead">
+      <div>
+        <h2>Backtest Strategies</h2>
+        <p class="subtitle">Test the breakout strategy on individual symbols or view top performers</p>
+      </div>
+      <button class="run-backtest-btn" (click)="runBacktestAnalysis()" [disabled]="backtestRunning">
+        {{ backtestRunning ? 'Running Backtest...' : 'Run Full Backtest' }}
+      </button>
+    </section>
+
+    <section class="symbol-backtest-input">
+      <div class="input-group">
+        <label>
+          <span class="input-label">Test Individual Symbol</span>
+          <div class="input-with-button">
+            <input
+              type="text"
+              placeholder="Enter symbol (e.g., RELIANCE)"
+              [value]="symbolBacktestInput"
+              (input)="onSymbolBacktestInput($event)"
+              (keyup.enter)="runSymbolBacktest()"
+              class="symbol-input"
+            />
+            <button class="test-symbol-btn" (click)="runSymbolBacktest()" [disabled]="symbolBacktestLoading || !symbolBacktestInput.trim()">
+              {{ symbolBacktestLoading ? 'Testing...' : 'Test Symbol' }}
+            </button>
+            <button class="clear-symbol-btn" *ngIf="symbolBacktestResult || symbolBacktestError" (click)="clearSymbolBacktest()">
+              Clear
+            </button>
+          </div>
+        </label>
+      </div>
+    </section>
+
+    <p class="state error" *ngIf="symbolBacktestError">{{ symbolBacktestError }}</p>
+
+    <section class="symbol-result-card" *ngIf="symbolBacktestResult && !symbolBacktestError">
+      <div class="result-header">
+        <h3>{{ symbolBacktestResult.symbol }} Backtest Results</h3>
+        <span class="data-badge">{{ symbolBacktestResult.total_data_points }} data points</span>
+      </div>
+
+      <div class="result-metrics-grid">
+        <div class="result-metric">
+          <span class="result-metric-label">Win Rate</span>
+          <strong [ngClass]="getMetricClass('win_rate', symbolBacktestResult.win_rate || 0)">
+            {{ symbolBacktestResult.win_rate }}%
+          </strong>
+        </div>
+        <div class="result-metric">
+          <span class="result-metric-label">Profit Factor</span>
+          <strong [ngClass]="getMetricClass('profit_factor', symbolBacktestResult.profit_factor || 0)">
+            {{ symbolBacktestResult.profit_factor }}
+          </strong>
+        </div>
+        <div class="result-metric">
+          <span class="result-metric-label">CAGR</span>
+          <strong [ngClass]="getMetricClass('cagr', symbolBacktestResult.cagr || 0)">
+            {{ symbolBacktestResult.cagr }}%
+          </strong>
+        </div>
+        <div class="result-metric">
+          <span class="result-metric-label">Avg Return</span>
+          <strong>{{ symbolBacktestResult.avg_return }}%</strong>
+        </div>
+        <div class="result-metric">
+          <span class="result-metric-label">Max Drawdown</span>
+          <strong [ngClass]="getMetricClass('max_drawdown', symbolBacktestResult.max_drawdown || 0)">
+            {{ symbolBacktestResult.max_drawdown }}%
+          </strong>
+        </div>
+        <div class="result-metric">
+          <span class="result-metric-label">Total Trades</span>
+          <strong>{{ symbolBacktestResult.total_trades }}</strong>
+        </div>
+      </div>
+
+      <div class="trades-preview" *ngIf="symbolBacktestResult.trades_list && symbolBacktestResult.trades_list.length">
+        <div class="trades-header">
+          <h4>Recent Trades</h4>
+          <span class="trades-count">{{ symbolBacktestResult.trades_list.length }} total</span>
+        </div>
+        <div class="trades-table">
+          <div class="trades-table-header">
+            <span>Entry Date</span>
+            <span>Exit Date</span>
+            <span>Entry Price</span>
+            <span>Exit Price</span>
+            <span>Return</span>
+            <span>Exit Reason</span>
+          </div>
+          <div
+            *ngFor="let trade of getDisplayedTrades()"
+            class="trade-row"
+            [class.trade-positive]="trade.return > 0"
+            [class.trade-negative]="trade.return < 0"
+          >
+            <span>{{ trade.entry_date | date: 'MMM d, y' }}</span>
+            <span>{{ trade.exit_date | date: 'MMM d, y' }}</span>
+            <span>₹{{ trade.entry_price | number: '1.2-2' }}</span>
+            <span>₹{{ trade.exit_price | number: '1.2-2' }}</span>
+            <span class="trade-return">{{ trade.return > 0 ? '+' : '' }}{{ trade.return | number: '1.2-2' }}%</span>
+            <span class="exit-reason">{{ formatExitReason(trade.exit_reason) }}</span>
+          </div>
+        </div>
+        <div class="trades-show-more" *ngIf="symbolBacktestResult.trades_list.length > 10">
+          <button type="button" class="show-more-trades-btn" (click)="toggleShowAllTrades()">
+            {{ showAllTrades ? 'Show Less' : 'Show More (' + (symbolBacktestResult.trades_list.length - 10) + ' more)' }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="subhead top-strategies-subhead">
+      <h2>Top Performing Strategies</h2>
+      <p class="subtitle">Fundamentally strong stocks (Score ≥ 60) with Win Rate > 55% and Profit Factor > 1.5</p>
+    </section>
+
+    <p class="state" *ngIf="backtestLoading">Loading backtest results...</p>
+    <p class="state error" *ngIf="backtestError">{{ backtestError }}</p>
+    <p class="state" *ngIf="!backtestLoading && !backtestError && !topStrategies.length">
+      No backtest results available. Click "Run Full Backtest" to analyze strategies.
+    </p>
+
+    <section class="backtest-grid" *ngIf="!backtestLoading && !backtestError && topStrategies.length">
+      <article class="card backtest-card" *ngFor="let result of topStrategies; trackBy: trackByBacktestSymbol">
+        <div class="card-head">
+          <h3>{{ result.symbol }}</h3>
+          <div class="card-badges">
+            <span class="badge metric-badge" [ngClass]="getMetricClass('cagr', result.cagr)">
+              CAGR: {{ result.cagr }}%
+            </span>
+          </div>
+        </div>
+
+        <div class="backtest-metrics">
+          <div class="metric-item">
+            <span class="metric-label">Win Rate</span>
+            <strong [ngClass]="getMetricClass('win_rate', result.win_rate)">{{ result.win_rate }}%</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Profit Factor</span>
+            <strong [ngClass]="getMetricClass('profit_factor', result.profit_factor)">{{ result.profit_factor }}</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Avg Return</span>
+            <strong>{{ result.avg_return }}%</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Max Drawdown</span>
+            <strong [ngClass]="getMetricClass('max_drawdown', result.max_drawdown)">{{ result.max_drawdown }}%</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Total Trades</span>
+            <strong>{{ result.total_trades }}</strong>
+          </div>
+        </div>
+      </article>
+    </section>
+  </section>
+
+  <section *ngIf="!chartOnlyMode && activeTab === 'seasonality'">
+    <app-seasonal-stocks></app-seasonal-stocks>
+  </section>
+</main>
+

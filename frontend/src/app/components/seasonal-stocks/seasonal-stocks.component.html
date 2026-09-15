@@ -1,0 +1,96 @@
+<div class="container">
+
+  <h2>Seasonal Stock Dashboard</h2>
+
+  <select
+    [(ngModel)]="selectedMonth"
+    (change)="loadData()">
+
+    <option
+      *ngFor="let month of months"
+      [value]="month.id">
+
+      {{month.name}}
+
+    </option>
+
+  </select>
+
+  <p *ngIf="loading">Loading seasonal stocks...</p>
+
+  <p *ngIf="error">{{ error }}</p>
+
+  <p *ngIf="!loading && !error && !stocks.length">No seasonal stocks found.</p>
+
+  <section class="best-sectors" *ngIf="!loading && !error && stocks.length">
+    <div class="section-heading">
+      <h3>Best Sectors This Month</h3>
+      <span>Ranked by stock count, win rate, and combined score</span>
+    </div>
+
+    <div class="sector-summary-grid">
+      <article class="sector-summary-card" *ngFor="let sector of getBestSectors(); let i = index">
+        <div class="sector-summary-rank">#{{ i + 1 }}</div>
+        <div>
+          <h4>{{ sector.sector }}</h4>
+          <p>{{ sector.stockCount }} stocks</p>
+        </div>
+        <div class="sector-summary-metrics">
+          <span>Sector {{ sector.sectorScore }}</span>
+          <span>{{ sector.stockCount }} stocks</span>
+          <span>Win {{ sector.avgWinRate }}%</span>
+          <span>Combined {{ sector.avgCombinedScore }}</span>
+          <span>Median {{ sector.avgMedianReturn }}%</span>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <div class="filter-bar" *ngIf="!loading && !error && stocks.length">
+    <label for="sectorFilter">Filter by Sector:</label>
+    <select id="sectorFilter" [(ngModel)]="selectedSector">
+      <option value="">All Sectors</option>
+      <option *ngFor="let sector of availableSectors" [value]="sector">{{ sector }}</option>
+    </select>
+    <span class="filter-count">{{ filteredStocks.length }} stock{{ filteredStocks.length !== 1 ? 's' : '' }}</span>
+  </div>
+
+  <table *ngIf="!loading && !error && stocks.length">
+
+    <thead>
+      <tr>
+        <th>Symbol</th>
+        <th>Sector</th>
+        <th>Fundamental Score</th>
+        <th>Combined Score</th>
+        <th>Median Return %</th>
+        <th>Win Rate %</th>
+      </tr>
+    </thead>
+
+    <tbody>
+
+      <tr *ngFor="let stock of filteredStocks">
+
+        <td>{{stock.symbol}}</td>
+
+        <td>{{stock.sector ?? '-'}}</td>
+
+        <td>{{stock.total_score ?? '-'}}</td>
+
+        <td>{{stock.combined_score ?? '-'}}</td>
+
+        <td>
+          {{stock.median_return}}
+          <span *ngIf="stock.yearly_returns?.length" class="yearly-returns">({{stock.yearly_returns.join(', ')}})</span>
+        </td>
+
+        <td>{{stock.win_rate}}</td>
+
+      </tr>
+
+    </tbody>
+
+  </table>
+
+</div>

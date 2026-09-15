@@ -1,0 +1,69 @@
+<div class="heatmap-container">
+
+  <button
+    type="button"
+    class="sector-tile"
+    *ngFor="let sector of sectors; let i = index"
+    [ngClass]="getSectorStrengthClass(sector.strength)"
+    (click)="loadSectorLeaders(sector.sector)"
+  >
+
+    <div class="sector-tile-head">
+      <div class="sector-title">
+        <span class="sector-rank">#{{i + 1}}</span>
+        <h3>{{sector.sector}}</h3>
+      </div>
+      <span class="strength-pill">{{getSectorStrengthClass(sector.strength)}}</span>
+    </div>
+
+    <div class="strength-value">{{sector.strength}}</div>
+
+    <div class="strength-track">
+      <span [style.width.%]="getStrengthWidth(sector.strength)"></span>
+    </div>
+
+  </button>
+
+</div>
+
+<div #sectorLeadersSection *ngIf="selectedSector">
+
+  <h2>
+    Top Stocks in {{selectedSector}}
+  </h2>
+
+  <p *ngIf="sectorLeadersLoading">Loading stocks for {{selectedSector}}...</p>
+
+  <p *ngIf="sectorLeadersError">{{sectorLeadersError}}</p>
+
+  <table *ngIf="!sectorLeadersLoading && !sectorLeadersError">
+
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Symbol</th>
+        <th>Fundamental Score</th>
+        <th>RS Score</th>
+      </tr>
+    </thead>
+
+    <tbody>
+
+      <tr *ngFor="let stock of sectorLeaders">
+
+        <td>{{stock.rank}}</td>
+
+        <td>{{stock.symbol}}</td>
+
+        <td>{{stock.total_score ?? '-'}}</td>
+
+        <td>{{stock.rs_score}}</td>
+
+      </tr>
+
+    </tbody>
+
+  </table>
+
+</div>
+

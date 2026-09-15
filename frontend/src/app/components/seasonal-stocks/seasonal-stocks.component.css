@@ -1,0 +1,137 @@
+.container {
+  padding: 20px;
+}
+
+h2 {
+  margin-bottom: 20px;
+}
+
+select {
+  padding: 8px;
+  margin-bottom: 20px;
+}
+
+.best-sectors {
+  margin-bottom: 24px;
+}
+
+.section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.section-heading h3 {
+  margin: 0;
+}
+
+.section-heading span {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.sector-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.sector-summary-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.65);
+}
+
+.sector-summary-rank {
+  color: #34d399;
+  font-weight: 700;
+}
+
+.sector-summary-card h4,
+.sector-summary-card p {
+  margin: 0;
+}
+
+.sector-summary-card p {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.sector-summary-metrics {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sector-summary-metrics span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #a7f3d0;
+  font-size: 12px;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.filter-bar label {
+  color: #94a3b8;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.filter-bar select {
+  padding: 8px 12px;
+  margin-bottom: 0;
+  background: #1e293b;
+  color: white;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  border-radius: 8px;
+  cursor: pointer;
+  min-width: 180px;
+}
+
+.filter-count {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #a7f3d0;
+  font-size: 13px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  background: #1e293b;
+  color: white;
+  padding: 10px;
+}
+
+td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+tr:hover {
+  background: #f3f4f6;
+}
+
+.yearly-returns {
+  font-size: 0.82em;
+  color: #6b7280;
+  margin-left: 4px;
+}

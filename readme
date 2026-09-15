@@ -1,0 +1,146 @@
+# StockChain
+
+StockChain is a Python-based stock data project that combines:
+
+- A `FastAPI` backend for stock and signal APIs
+- A data pipeline for downloading and uploading market/fundamental data
+- A PostgreSQL database for storing historical prices and fundamentals
+
+## Project Structure
+
+`backend/`
+- API service (`FastAPI`)
+- Routes for stock signal generation
+
+`data_pipeline/`
+- Scripts for fetching NSE bhavcopy and Yahoo data
+- Script to upload fundamental data from Excel into PostgreSQL
+
+`database/`
+- Reserved for DB-related assets/migrations (currently empty)
+
+`frontend/`
+- Reserved for UI app (currently empty)
+
+## Tech Stack
+
+- Python 3.13
+- FastAPI + Uvicorn
+- PostgreSQL
+- SQLAlchemy
+- Pandas
+- yfinance
+- openpyxl
+
+## Prerequisites
+
+- Python 3.13 installed
+- PostgreSQL running locally
+- Database created: `stockDB`
+
+## Setup
+
+### 1) Backend environment
+
+```powershell
+cd backend
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+ uvicorn main:app --reload
+```
+
+If PowerShell blocks script execution:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\venv\Scripts\Activate.ps1
+```
+
+### 2) Data pipeline environment
+
+```powershell
+cd ..\data_pipeline
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install pandas sqlalchemy psycopg2-binary yfinance requests openpyxl
+```
+
+## Database Connection
+
+Current scripts use hardcoded DB URLs like:
+
+`postgresql://postgres:<password>@localhost:5432/stockDB`
+
+Before running scripts, make sure credentials in code match your local PostgreSQL setup.
+
+## Running the Backend
+
+From `backend/`:
+
+```powershell
+```
+
+Default URL: `http://127.0.0.1:8000`
+
+## API Endpoints
+
+- `GET /` → health message
+- `GET /stocks/{symbol}` → latest 100 records for a symbol from `price_data`
+- `GET /signals/{symbol}` → MA/RSI-based signal for one symbol
+- `GET /scan` → scans all symbols and returns MA/RSI buy candidates
+- `GET /screen/swing` → technical breakout screener from `services/screeners.py`
+
+## Swing Screener (`/screen/swing`)
+
+Current swing screening is technical-only and uses `price_data`:
+
+- Minimum 250 rows of price history per symbol
+- `close > ma20`
+- `ma20 > ma50`
+- `rsi > 60`
+- `volume_ratio > 2`
+- Breakout confirmation via `services/price_action.py`
+
+Note: Fundamental fields are stored in the `fundamentals` table and are not currently part of `/screen/swing` filtering.
+
+## Data Pipeline Scripts
+
+Run from `data_pipeline/`:
+
+1. Download latest NSE bhavcopy
+
+```powershell
+python fetch_bhavcopy.py
+```
+
+2. Upload fundamentals from `fundamentals.xlsx`
+
+```powershell
+python upload_fundamentals.py
+```
+
+3. Fetch Yahoo price data for symbols in DB
+
+```powershell
+python fetch_yahoo_data.py
+```
+
+4. Optional: check duplicate symbols in fundamentals file
+
+```powershell
+python check_duplicates.py
+```
+
+## Notes
+
+- `frontend/` is currently empty and can be added later.
+- `database/` is currently empty and can be used for schema/migrations.
+- Consider moving DB credentials from code to environment variables for security.
+
+
+Daily Jobs that needs to running
+python data_pipeline/fetch_yahoo_data.py
+python backend/services/relative_strength.py
+python backend/services/sector_rotation.py
+python backend/services/sector_leaders.py
