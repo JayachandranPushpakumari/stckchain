@@ -281,11 +281,12 @@ df["report_date"] = pd.to_datetime("2026-05-08")
 # -----------------------------
 from sqlalchemy import text
 
-report_date = df['report_date'].iloc[0]
-
 with engine.begin() as conn:
-    result = conn.execute(text("DELETE FROM fundamentals WHERE report_date = :report_date"), {"report_date": report_date})
-    print(f"Deleted {result.rowcount} existing records for {report_date}")
+    result = conn.execute(
+        text("DELETE FROM fundamentals WHERE symbol = ANY(:symbols)"),
+        {"symbols": df["symbol"].tolist()}
+    )
+    print(f"Deleted {result.rowcount} existing rows for uploaded symbols")
     df.to_sql('fundamentals', conn, if_exists='append', index=False, method='multi')
 
 print(" Fundamentals uploaded successfully!")
