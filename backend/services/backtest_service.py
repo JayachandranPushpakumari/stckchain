@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
-from sqlalchemy import create_engine
 
+from db import engine
 from strategies.breakout import breakout_strategy
 from backtest_metrics import calculate_metrics
 
@@ -17,11 +17,6 @@ def sanitize_for_json(data):
             return None
         return data
     return data
-
-
-DATABASE_URL = "postgresql://postgres:Jayan%40123@localhost:5432/stockDB"
-
-engine = create_engine(DATABASE_URL)
 
 
 # --------------------------------------------------

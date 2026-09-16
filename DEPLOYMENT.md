@@ -135,5 +135,5 @@ psql "YOUR_RENDER_EXTERNAL_DATABASE_URL" -f stockdb_backup.sql
 ### Local Development (`.env` file)
 | Variable | Value |
 |---|---|
-| `DATABASE_URL` | `postgresql://postgres:Jayan@123@localhost:5432/stockDB` |
+| `DATABASE_URL` | `postgresql://postgres:Jayan%40123@localhost:5432/stockDB` |
 | `ALLOWED_ORIGINS` | `http://localhost:4200,http://127.0.0.1:4200` |

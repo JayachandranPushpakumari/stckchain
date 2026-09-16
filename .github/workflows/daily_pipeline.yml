@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL: postgresql://stockdb_eo2s_user:AC5ab89hzAhvEbYjjFKD3EIYeBPgauLY@dpg-dakus3dbedkc73akqfeg-a.oregon-postgres.render.com/stockdb_eo2s
 
     steps:
       - name: Checkout code
