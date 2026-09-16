@@ -1,9 +1,12 @@
 import pandas as pd
-from sqlalchemy import create_engine
+from pathlib import Path
+import sys
 
-DATABASE_URL = "postgresql://postgres:Jayan%40123@localhost:5432/stockDB"
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
-engine = create_engine(DATABASE_URL)
+from db import engine
 
 
 def calculate_rs():

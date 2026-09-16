@@ -1,10 +1,5 @@
 import pandas as pd
-from sqlalchemy import create_engine
-
-# PostgreSQL connection
-engine = create_engine(
-    "postgresql://postgres:Jayan%40123@localhost:5432/stockDB"
-)
+from db import engine
 
 # Read Excel
 df = pd.read_excel("fundamentals.xlsx")

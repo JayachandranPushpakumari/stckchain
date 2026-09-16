@@ -1,8 +1,6 @@
 import yfinance as yf
 import pandas as pd
-from sqlalchemy import create_engine
-
-engine = create_engine("postgresql://postgres:Jayan%40123@localhost:5432/stockDB")
+from db import engine
 
 # symbols = pd.read_sql("SELECT stock_name FROM stocks2", engine)["stock_name"].tolist() # --backup
 # stock_symbol = "GANESHHOU.BO"  # Replace with desired stock symbol

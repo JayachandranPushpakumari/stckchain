@@ -1,0 +1,43 @@
+name: Daily Data Pipeline
+
+on:
+  schedule:
+    - cron: '30 11 * * 1-5'  # 11:30 UTC = 17:00 IST, weekdays only (Mon-Fri)
+  workflow_dispatch:           # Allow manual trigger from GitHub UI
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pandas sqlalchemy psycopg2-binary yfinance python-dotenv openpyxl ta
+
+      - name: Fetch Yahoo price data
+        working-directory: data_pipeline
+        run: python fetch_yahoo_data.py
+
+      - name: Calculate Relative Strength
+        working-directory: backend
+        run: python services/relative_strength.py
+
+      - name: Calculate Sector Rotation
+        working-directory: backend
+        run: python services/sector_rotation.py
+
+      - name: Calculate Sector Leaders
+        working-directory: backend
+        run: python services/sector_leaders.py
