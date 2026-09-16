@@ -25,12 +25,12 @@ def get_sector_strength_frame(period: str):
 
     query = text("""
     WITH latest_prices AS (
-        SELECT s.symbol, l.date, l.close
-        FROM (SELECT DISTINCT symbol FROM price_data) s
+        SELECT sec.symbol, l.date, l.close
+        FROM sectors sec
         CROSS JOIN LATERAL (
             SELECT date, close
             FROM price_data
-            WHERE symbol = s.symbol
+            WHERE symbol = sec.symbol
             ORDER BY date DESC
             LIMIT 1
         ) l

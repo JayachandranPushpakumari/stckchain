@@ -1,9 +1,20 @@
 from fastapi import APIRouter
-from services.screeners import find_breakouts
+import pandas as pd
+from sqlalchemy import text
+
+from db import engine
 
 router = APIRouter()
 
 @router.get("/screen/breakout")
 def breakout_screen():
 
-    return find_breakouts()
+    try:
+        df = pd.read_sql(
+            text("SELECT * FROM breakout_results"),
+            engine
+        )
+    except Exception:
+        return []
+
+    return df.to_dict(orient="records")

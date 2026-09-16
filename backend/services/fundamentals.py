@@ -114,12 +114,12 @@ def _score_stock(stock):
 
 def _latest_close_by_symbol():
     query = """
-    SELECT s.symbol, l.close
-    FROM (SELECT DISTINCT symbol FROM price_data) s
+    SELECT f.symbol, l.close
+    FROM (SELECT DISTINCT symbol FROM fundamentals) f
     CROSS JOIN LATERAL (
         SELECT close
         FROM price_data
-        WHERE symbol = s.symbol
+        WHERE symbol = f.symbol
         ORDER BY date DESC
         LIMIT 1
     ) l

@@ -41,3 +41,7 @@ jobs:
       - name: Calculate Sector Leaders
         working-directory: backend
         run: python services/sector_leaders.py
+
+      - name: Compute Breakout Screen
+        working-directory: backend
+        run: python services/screeners.py

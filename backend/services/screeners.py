@@ -1,35 +1,45 @@
 import pandas as pd
+from pathlib import Path
+import sys
+from sqlalchemy import text
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
 from db import engine
 from services.technicals import calculate_indicators
 from services.price_action import is_breakout
 
+LOOKBACK_ROWS = 300
+MIN_HISTORY_ROWS = 250
+
+
+def _recent_prices():
+    query = text("""
+    SELECT date, symbol, open, high, low, close, volume
+    FROM (
+        SELECT date, symbol, open, high, low, close, volume,
+               ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY date DESC) AS rn
+        FROM price_data
+    ) recent
+    WHERE rn <= :lookback
+    """)
+    df = pd.read_sql(query, engine, params={"lookback": LOOKBACK_ROWS})
+    return df.sort_values(["symbol", "date"]).reset_index(drop=True)
+
+
 def find_breakouts():
 
-    symbols_query = """
-    SELECT DISTINCT symbol
-    FROM price_data
-    """
-
-    symbols_df = pd.read_sql(symbols_query, engine)
-
+    prices = _recent_prices()
     results = []
 
-    for symbol in symbols_df["symbol"]:
+    for symbol, df in prices.groupby("symbol"):
 
-        query = f"""
-        SELECT *
-        FROM price_data
-        WHERE symbol = '{symbol}'
-        ORDER BY date
-        """
+        df = calculate_indicators(df.copy())
 
-        df = pd.read_sql(query, engine)
-
-        if len(df) < 250:
+        if len(df) < MIN_HISTORY_ROWS:
             continue
-
-        df = calculate_indicators(df)
 
         latest = df.iloc[-1]
         previous = df.iloc[-2]
@@ -62,3 +72,23 @@ def find_breakouts():
             })
 
     return results
+
+
+def save_breakouts():
+
+    results = find_breakouts()
+    df = pd.DataFrame(results)
+
+    df.to_sql(
+        "breakout_results",
+        engine,
+        if_exists="replace",
+        index=False
+    )
+
+    return len(df)
+
+
+if __name__ == "__main__":
+    count = save_breakouts()
+    print(f"Saved {count} breakouts")
