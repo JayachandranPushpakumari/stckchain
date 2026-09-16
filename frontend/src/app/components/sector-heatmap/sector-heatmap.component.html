@@ -36,7 +36,8 @@
 
   <p *ngIf="sectorLeadersError">{{sectorLeadersError}}</p>
 
-  <table *ngIf="!sectorLeadersLoading && !sectorLeadersError">
+  <div class="table-scroll" *ngIf="!sectorLeadersLoading && !sectorLeadersError">
+  <table>
 
     <thead>
       <tr>
@@ -64,6 +65,7 @@
     </tbody>
 
   </table>
+  </div>
 
 </div>
 

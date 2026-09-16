@@ -40,6 +40,7 @@
 
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.7rem;
   margin: 0 auto 1.1rem;
 }
@@ -152,7 +153,7 @@ h1 {
 .controls {
   margin: 0 auto 1rem;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 0.8rem;
 }
 
@@ -720,10 +721,34 @@ h1 {
   color: #cce7dc;
 }
 
+@media (max-width: 900px) {
+  .sector-rotation-table th,
+  .sector-rotation-table td {
+    padding: 0.6rem 0.7rem;
+  }
+
+  .sector-rotation-table {
+    min-width: 720px;
+  }
+}
+
 @media (max-width: 640px) {
+  .page {
+    padding: 1rem 0.75rem 3rem;
+  }
+
   .hero {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+  }
+
+  .hero-actions {
+    width: 100%;
+  }
+
+  .hero-actions .refresh-btn,
+  .hero-actions .logout-btn {
+    flex: 1;
   }
 
   .controls {
@@ -735,12 +760,17 @@ h1 {
   }
 
   .tab-btn {
-    flex: 1;
+    flex: 1 1 40%;
     text-align: center;
   }
 
   .refresh-btn {
     width: 100%;
+  }
+
+  .grid,
+  .backtest-grid {
+    grid-template-columns: 1fr;
   }
 
   .chart-head {
@@ -764,6 +794,41 @@ h1 {
 
   .run-backtest-btn {
     width: 100%;
+  }
+
+  .input-with-button {
+    flex-direction: column;
+  }
+
+  .test-symbol-btn,
+  .clear-symbol-btn {
+    width: 100%;
+  }
+
+  .result-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  .trades-table-header,
+  .trade-row {
+    min-width: 560px;
+  }
+
+  .symbol-result-card {
+    padding: 1rem;
+  }
+
+  .breakout-section,
+  .heatmap-section,
+  .backtest-section,
+  .chart-panel {
+    padding: 0.85rem;
+  }
+
+  .login-card {
+    padding: 1.5rem;
   }
 }
 
@@ -1046,6 +1111,7 @@ h1 {
   flex-direction: column;
   gap: 0.5rem;
   font-size: 0.85rem;
+  overflow-x: auto;
 }
 
 .trades-table-header {

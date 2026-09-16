@@ -55,7 +55,8 @@
     <span class="filter-count">{{ filteredStocks.length }} stock{{ filteredStocks.length !== 1 ? 's' : '' }}</span>
   </div>
 
-  <table *ngIf="!loading && !error && stocks.length">
+  <div class="table-scroll" *ngIf="!loading && !error && stocks.length">
+  <table>
 
     <thead>
       <tr>
@@ -92,5 +93,6 @@
     </tbody>
 
   </table>
+  </div>
 
 </div>
