@@ -11,6 +11,7 @@ interface LoginResponse {
 export class AuthService {
   private readonly tokenKey = 'stockchain_auth_token';
   private readonly loginEndpoint = `${environment.apiUrl}/auth/login`;
+  private readonly demoEndpoint = `${environment.apiUrl}/auth/demo`;
 
   readonly isAuthenticated = signal(this.hasStoredToken());
 
@@ -33,6 +34,15 @@ export class AuthService {
           this.isAuthenticated.set(true);
         }),
       );
+  }
+
+  demoLogin(): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(this.demoEndpoint, {}).pipe(
+      tap((response) => {
+        localStorage.setItem(this.tokenKey, response.token);
+        this.isAuthenticated.set(true);
+      }),
+    );
   }
 
   logout(): void {

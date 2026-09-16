@@ -133,6 +133,8 @@ psql "YOUR_RENDER_EXTERNAL_DATABASE_URL" -f stockdb_backup.sql
 | `ALLOWED_ORIGINS` | `https://yourdomain.com,https://www.yourdomain.com` |
 | `APP_USERNAME` | Login username for the dashboard |
 | `APP_PASSWORD` | Login password for the dashboard |
+| `DEMO_USERNAME` | Optional demo login (default `demo`) |
+| `DEMO_PASSWORD` | Optional demo password (default `demo123`) |
 | `TOKEN_SECRET` | Auto-generated signing secret (Render `generateValue`) |
 
 ### Local Development (`.env` file)

@@ -122,6 +122,24 @@ export class AppComponent implements OnInit {
     });
   }
 
+  onDemoLogin(): void {
+    this.loginLoading = true;
+    this.loginError = '';
+
+    this.auth.demoLogin().subscribe({
+      next: () => {
+        this.loginLoading = false;
+        this.initializeDashboard();
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loginError = 'Demo login is unavailable right now.';
+        this.loginLoading = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
   onLogout(): void {
     this.auth.logout();
   }

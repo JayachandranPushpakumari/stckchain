@@ -529,6 +529,12 @@
       <button class="refresh-btn login-submit" type="submit" [disabled]="loginLoading">
         {{ loginLoading ? 'Signing in...' : 'Sign In' }}
       </button>
+
+      <div class="login-divider"><span>or</span></div>
+
+      <button class="demo-btn" type="button" (click)="onDemoLogin()" [disabled]="loginLoading">
+        Continue as Demo
+      </button>
     </form>
   </main>
 </ng-template>

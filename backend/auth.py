@@ -9,6 +9,8 @@ from pydantic import BaseModel
 
 APP_USERNAME = os.getenv("APP_USERNAME", "")
 APP_PASSWORD = os.getenv("APP_PASSWORD", "")
+DEMO_USERNAME = os.getenv("DEMO_USERNAME", "demo")
+DEMO_PASSWORD = os.getenv("DEMO_PASSWORD", "demo123")
 TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", str(7 * 24 * 60 * 60)))
 
 router = APIRouter()
@@ -56,13 +58,25 @@ def login(body: LoginRequest):
     if not APP_USERNAME or not APP_PASSWORD:
         raise HTTPException(status_code=503, detail="Auth not configured on server")
 
-    valid = secrets.compare_digest(body.username, APP_USERNAME) and secrets.compare_digest(
-        body.password, APP_PASSWORD
+    valid = (
+        secrets.compare_digest(body.username, APP_USERNAME)
+        and secrets.compare_digest(body.password, APP_PASSWORD)
+    ) or (
+        secrets.compare_digest(body.username, DEMO_USERNAME)
+        and secrets.compare_digest(body.password, DEMO_PASSWORD)
     )
     if not valid:
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
     return {"token": _issue_token(body.username)}
+
+
+@router.post("/auth/demo")
+def demo_login():
+    if not DEMO_USERNAME:
+        raise HTTPException(status_code=404, detail="Demo login not enabled")
+
+    return {"token": _issue_token(DEMO_USERNAME)}
 
 
 @router.get("/auth/check", dependencies=[Depends(require_auth)])
