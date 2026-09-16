@@ -18,19 +18,31 @@ PERIOD_INTERVALS = {
 
 ROTATION_PERIODS = ["1d", "1w", "1m", "3m", "6m"]
 
+MIN_MARKET_CAP_CR = 3000
+
 
 def get_sector_strength_frame(period: str):
 
     lookback_interval = PERIOD_INTERVALS.get(period, PERIOD_INTERVALS["3m"])
 
     query = text("""
-    WITH latest_prices AS (
-        SELECT sec.symbol, l.date, l.close
+    WITH eligible AS (
+        SELECT sec.symbol
         FROM sectors sec
+        JOIN (
+            SELECT DISTINCT ON (symbol) symbol, market_cap
+            FROM fundamentals
+            ORDER BY symbol, report_date DESC
+        ) f ON f.symbol = sec.symbol
+        WHERE f.market_cap >= :min_mcap
+    ),
+    latest_prices AS (
+        SELECT e.symbol, l.date, l.close
+        FROM eligible e
         CROSS JOIN LATERAL (
             SELECT date, close
             FROM price_data
-            WHERE symbol = sec.symbol
+            WHERE symbol = e.symbol
             ORDER BY date DESC
             LIMIT 1
         ) l
@@ -59,10 +71,15 @@ def get_sector_strength_frame(period: str):
         ON sr.symbol = s.symbol
     WHERE sr.pct_return IS NOT NULL
     GROUP BY s.sector
+    HAVING COUNT(*) >= 3
     ORDER BY strength DESC
     """)
 
-    return pd.read_sql(query, engine, params={"lookback_interval": lookback_interval})
+    return pd.read_sql(
+        query,
+        engine,
+        params={"lookback_interval": lookback_interval, "min_mcap": MIN_MARKET_CAP_CR},
+    )
 
 
 @lru_cache(maxsize=16)

@@ -9,6 +9,9 @@ if str(BACKEND_DIR) not in sys.path:
 from db import engine
 
 
+MIN_MARKET_CAP_CR = 3000
+
+
 def calculate_sector_strength():
 
     sectors = pd.read_excel(
@@ -19,13 +22,28 @@ def calculate_sector_strength():
         "Sector": "sector"
     })
 
+    mcap = pd.read_sql(
+        """
+        SELECT DISTINCT ON (symbol) symbol, market_cap
+        FROM fundamentals
+        ORDER BY symbol, report_date DESC
+        """,
+        engine
+    )
+    eligible = set(
+        mcap.loc[mcap["market_cap"] >= MIN_MARKET_CAP_CR, "symbol"]
+    )
+
     results = []
 
     for sector in sectors["sector"].unique():
 
-        stocks = sectors[
-            sectors["sector"] == sector
-        ]["symbol"].tolist()
+        stocks = [
+            s for s in sectors[
+                sectors["sector"] == sector
+            ]["symbol"].tolist()
+            if s in eligible
+        ]
 
         returns = []
 
@@ -52,7 +70,7 @@ def calculate_sector_strength():
 
             returns.append(pct_return)
 
-        if returns:
+        if len(returns) >= 3:
 
             results.append({
                 "sector": sector,
