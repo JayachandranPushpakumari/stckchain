@@ -84,16 +84,26 @@ export class SectorHeatmapComponent implements OnInit {
     });
   }
 
-  getSectorStrengthClass(strength: number): string {
-  if (strength >= 15) {
+  getSectorStrengthClass(sector: SectorHeatmapItem): string {
+  const strength = sector.strength;
+  const pctPositive = sector.pct_positive;
+
+  if (pctPositive === undefined || pctPositive === null) {
+    if (strength >= 10) {
+      return 'strong';
+    }
+    return strength < 0 ? 'weak' : 'medium';
+  }
+
+  if (strength >= 10 && pctPositive >= 55) {
     return 'strong';
   }
 
-  if (strength >= 0) {
-    return 'medium';
+  if (strength < 0 && pctPositive < 45) {
+    return 'weak';
   }
 
-  return 'weak';
+  return 'medium';
 }
 
 getStrengthWidth(strength: number): number {

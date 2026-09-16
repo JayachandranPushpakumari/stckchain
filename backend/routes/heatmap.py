@@ -51,7 +51,9 @@ def get_sector_strength_frame(period: str):
     )
     SELECT
         s.sector,
-        ROUND(AVG(sr.pct_return)::numeric, 2) AS strength
+        ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sr.pct_return)::numeric, 2) AS strength,
+        ROUND((AVG(CASE WHEN sr.pct_return > 0 THEN 1 ELSE 0 END) * 100)::numeric, 1) AS pct_positive,
+        COUNT(*) AS stock_count
     FROM symbol_returns sr
     JOIN sectors s
         ON sr.symbol = s.symbol

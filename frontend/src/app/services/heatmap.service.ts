@@ -6,6 +6,8 @@ import { Observable, of, tap } from 'rxjs';
 export interface SectorHeatmapItem {
   sector: string;
   strength: number;
+  pct_positive?: number;
+  stock_count?: number;
 }
 
 export interface SectorLeaderItem {
@@ -38,7 +40,7 @@ interface SectorHeatmapCachePayload {
 export class HeatmapService {
 
   private readonly apiUrl = environment.apiUrl;
-  private readonly sectorHeatmapCacheKey = 'stockchain_sector_heatmap_cache_v1';
+  private readonly sectorHeatmapCacheKey = 'stockchain_sector_heatmap_cache_v2';
   private readonly sectorHeatmapCacheTtlMs = 24 * 60 * 60 * 1000;
 
   constructor(private http: HttpClient) {}

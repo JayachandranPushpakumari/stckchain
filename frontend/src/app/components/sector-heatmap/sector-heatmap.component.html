@@ -4,7 +4,7 @@
     type="button"
     class="sector-tile"
     *ngFor="let sector of sectors; let i = index"
-    [ngClass]="getSectorStrengthClass(sector.strength)"
+    [ngClass]="getSectorStrengthClass(sector)"
     (click)="loadSectorLeaders(sector.sector)"
   >
 
@@ -13,10 +13,14 @@
         <span class="sector-rank">#{{i + 1}}</span>
         <h3>{{sector.sector}}</h3>
       </div>
-      <span class="strength-pill">{{getSectorStrengthClass(sector.strength)}}</span>
+      <span class="strength-pill">{{getSectorStrengthClass(sector)}}</span>
     </div>
 
     <div class="strength-value">{{sector.strength}}</div>
+
+    <div class="breadth-line" *ngIf="sector.pct_positive !== undefined && sector.pct_positive !== null">
+      {{sector.pct_positive}}% of {{sector.stock_count}} stocks up
+    </div>
 
     <div class="strength-track">
       <span [style.width.%]="getStrengthWidth(sector.strength)"></span>

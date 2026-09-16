@@ -57,8 +57,12 @@ def calculate_sector_strength():
             results.append({
                 "sector": sector,
                 "strength": round(
-                    sum(returns)/len(returns),2
-                )
+                    float(pd.Series(returns).median()), 2
+                ),
+                "pct_positive": round(
+                    sum(1 for r in returns if r > 0) / len(returns) * 100, 1
+                ),
+                "stock_count": len(returns)
             })
 
     return pd.DataFrame(results)
