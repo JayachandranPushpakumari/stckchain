@@ -114,9 +114,15 @@ def _score_stock(stock):
 
 def _latest_close_by_symbol():
     query = """
-    SELECT DISTINCT ON (symbol) symbol, close
-    FROM price_data
-    ORDER BY symbol, date DESC
+    SELECT s.symbol, l.close
+    FROM (SELECT DISTINCT symbol FROM price_data) s
+    CROSS JOIN LATERAL (
+        SELECT close
+        FROM price_data
+        WHERE symbol = s.symbol
+        ORDER BY date DESC
+        LIMIT 1
+    ) l
     """
     df = pd.read_sql(query, engine)
 

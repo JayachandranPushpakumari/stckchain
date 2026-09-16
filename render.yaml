@@ -17,4 +17,4 @@ services:
           name: stockdb
           property: connectionString
       - key: ALLOWED_ORIGINS
-        value: https://jporg.in
+        value: https://jporg.in,https://www.jporg.in,http://jporg.in,http://www.jporg.in

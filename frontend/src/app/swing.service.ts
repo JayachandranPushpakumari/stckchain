@@ -255,7 +255,7 @@ export class SwingService {
   }
 
   backtestSymbol(symbol: string): Observable<SingleSymbolBacktestResult> {
-    const url = `http://127.0.0.1:8000/backtest/symbol/${encodeURIComponent(symbol.toUpperCase())}`;
+    const url = `${environment.apiUrl}/backtest/symbol/${encodeURIComponent(symbol.toUpperCase())}`;
     return this.http.get<SingleSymbolBacktestResult>(url);
   }
 }
