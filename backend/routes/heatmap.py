@@ -32,6 +32,7 @@ def get_sector_strength_frame(period: str):
         JOIN (
             SELECT DISTINCT ON (symbol) symbol, market_cap
             FROM fundamentals
+            WHERE market_cap IS NOT NULL
             ORDER BY symbol, report_date DESC
         ) f ON f.symbol = sec.symbol
         WHERE f.market_cap >= :min_mcap

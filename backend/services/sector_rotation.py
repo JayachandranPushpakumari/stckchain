@@ -26,6 +26,7 @@ def calculate_sector_strength():
         """
         SELECT DISTINCT ON (symbol) symbol, market_cap
         FROM fundamentals
+        WHERE market_cap IS NOT NULL
         ORDER BY symbol, report_date DESC
         """,
         engine
