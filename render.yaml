@@ -1,7 +1,6 @@
 databases:
   - name: stockdb
-    databaseName: stockDB
-    user: postgres
+    databaseName: stockdb
     plan: free
 
 services:
