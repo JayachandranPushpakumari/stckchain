@@ -131,9 +131,16 @@ psql "YOUR_RENDER_EXTERNAL_DATABASE_URL" -f stockdb_backup.sql
 |---|---|
 | `DATABASE_URL` | Auto-set from Render PostgreSQL |
 | `ALLOWED_ORIGINS` | `https://yourdomain.com,https://www.yourdomain.com` |
+| `APP_USERNAME` | Login username for the dashboard |
+| `APP_PASSWORD` | Login password for the dashboard |
+| `TOKEN_SECRET` | Auto-generated signing secret (Render `generateValue`) |
 
 ### Local Development (`.env` file)
 | Variable | Value |
 |---|---|
 | `DATABASE_URL` | `postgresql://postgres:Jayan%40123@localhost:5432/stockDB` |
 | `ALLOWED_ORIGINS` | `http://localhost:4200,http://127.0.0.1:4200` |
+| `APP_USERNAME` | e.g. `admin` |
+| `APP_PASSWORD` | e.g. `your-local-password` |
+
+If `APP_USERNAME`/`APP_PASSWORD` are not set, `/auth/login` returns 503 and all data endpoints stay locked.

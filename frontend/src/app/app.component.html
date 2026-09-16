@@ -1,3 +1,4 @@
+<ng-container *ngIf="auth.isAuthenticated(); else loginScreen">
 <main class="page">
   <section class="hero" *ngIf="!chartOnlyMode">
     <div>
@@ -8,9 +9,12 @@
       </p>
     </div>
 
-    <button class="refresh-btn" (click)="onRefreshClick()" [disabled]="loading || breakoutLoading">
-      {{ loading || breakoutLoading ? 'Refreshing...' : 'Refresh Data' }}
-    </button>
+    <div class="hero-actions">
+      <button class="refresh-btn" (click)="onRefreshClick()" [disabled]="loading || breakoutLoading">
+        {{ loading || breakoutLoading ? 'Refreshing...' : 'Refresh Data' }}
+      </button>
+      <button class="logout-btn" type="button" (click)="onLogout()">Log Out</button>
+    </div>
   </section>
 
   <section class="tabs" *ngIf="!chartOnlyMode">
@@ -489,4 +493,43 @@
     <app-seasonal-stocks></app-seasonal-stocks>
   </section>
 </main>
+</ng-container>
+
+<ng-template #loginScreen>
+  <main class="page login-page">
+    <form class="login-card" (ngSubmit)="onLogin()">
+      <p class="eyebrow">StockChain</p>
+      <h1>Sign In</h1>
+      <p class="subtitle">Enter your credentials to access the dashboard.</p>
+
+      <label class="login-label" for="login-username">Username</label>
+      <input
+        id="login-username"
+        class="login-input"
+        name="username"
+        type="text"
+        [(ngModel)]="loginUsername"
+        autocomplete="username"
+        required
+      />
+
+      <label class="login-label" for="login-password">Password</label>
+      <input
+        id="login-password"
+        class="login-input"
+        name="password"
+        type="password"
+        [(ngModel)]="loginPassword"
+        autocomplete="current-password"
+        required
+      />
+
+      <p class="login-error" *ngIf="loginError">{{ loginError }}</p>
+
+      <button class="refresh-btn login-submit" type="submit" [disabled]="loginLoading">
+        {{ loginLoading ? 'Signing in...' : 'Sign In' }}
+      </button>
+    </form>
+  </main>
+</ng-template>
 

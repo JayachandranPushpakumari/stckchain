@@ -1,9 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { BacktestResult, BreakoutStock, SingleSymbolBacktestResult, StockHistoryPoint, SwingCriterionScore, SwingService, SwingStock } from './swing.service';
 import { SectorHeatmapComponent } from './components/sector-heatmap/sector-heatmap.component';
 import { HeatmapService, SectorHeatmapItem, SectorRotationRankItem } from './services/heatmap.service';
 import { SeasonalStocksComponent } from './components/seasonal-stocks/seasonal-stocks.component';
+import { AuthService } from './auth.service';
 
 type SortOption = 'scoreDesc' | 'scoreAsc' | 'symbolAsc' | 'symbolDesc' | 'promoterHolding' | 'breakoutOverlap' | 'sectorLeader';
 type ScreenerTab = 'swing' | 'breakout' | 'heatmap' | 'seasonality' | 'backtest';
@@ -13,7 +15,7 @@ type SectorPeriodOption = '1d' | '1w' | '1m' | '3m' | '6m' | '1y';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, SectorHeatmapComponent, SeasonalStocksComponent],
+  imports: [CommonModule, FormsModule, SectorHeatmapComponent, SeasonalStocksComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -74,14 +76,57 @@ export class AppComponent implements OnInit {
   symbolBacktestError = '';
   symbolBacktestResult: SingleSymbolBacktestResult | null = null;
   showAllTrades = false;
+  loginUsername = '';
+  loginPassword = '';
+  loginLoading = false;
+  loginError = '';
 
   constructor(
     private readonly swingService: SwingService,
     private readonly heatmapService: HeatmapService,
     private readonly cdr: ChangeDetectorRef,
+    protected readonly auth: AuthService,
   ) {}
 
   ngOnInit(): void {
+    if (this.auth.isAuthenticated()) {
+      this.initializeDashboard();
+    }
+  }
+
+  onLogin(): void {
+    const username = this.loginUsername.trim();
+    if (!username || !this.loginPassword) {
+      this.loginError = 'Enter your username and password.';
+      return;
+    }
+
+    this.loginLoading = true;
+    this.loginError = '';
+
+    this.auth.login(username, this.loginPassword).subscribe({
+      next: () => {
+        this.loginLoading = false;
+        this.loginPassword = '';
+        this.initializeDashboard();
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.loginError =
+          err?.status === 401
+            ? 'Invalid username or password.'
+            : 'Unable to reach the backend. Please try again.';
+        this.loginLoading = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  onLogout(): void {
+    this.auth.logout();
+  }
+
+  private initializeDashboard(): void {
     const params = new URLSearchParams(globalThis.location.search);
     this.chartOnlyMode = params.get('chartOnly') === '1';
     const initialSymbol = params.get('symbol')?.trim();

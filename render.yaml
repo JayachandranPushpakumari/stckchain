@@ -18,3 +18,9 @@ services:
           property: connectionString
       - key: ALLOWED_ORIGINS
         value: https://jporg.in,https://www.jporg.in,http://jporg.in,http://www.jporg.in
+      - key: APP_USERNAME
+        sync: false
+      - key: APP_PASSWORD
+        sync: false
+      - key: TOKEN_SECRET
+        generateValue: true

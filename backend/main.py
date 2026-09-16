@@ -1,11 +1,12 @@
 import os
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, text
 import pandas as pd
 
 load_dotenv()
+from auth import router as auth_router, require_auth
 from routes.signals import router as signal_router
 from routes.breakout import router as breakout_router
 from routes.swing import router as swing_router
@@ -35,15 +36,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(signal_router)
-app.include_router(breakout_router)
-app.include_router(swing_router)
-app.include_router(backtest_router)
-app.include_router(rs_router)
-app.include_router(sector_rotation.router)
-app.include_router(sector.router)
-app.include_router(heatmap.router)
-app.include_router(seasonality.router)
+app.include_router(auth_router)
+app.include_router(signal_router, dependencies=[Depends(require_auth)])
+app.include_router(breakout_router, dependencies=[Depends(require_auth)])
+app.include_router(swing_router, dependencies=[Depends(require_auth)])
+app.include_router(backtest_router, dependencies=[Depends(require_auth)])
+app.include_router(rs_router, dependencies=[Depends(require_auth)])
+app.include_router(sector_rotation.router, dependencies=[Depends(require_auth)])
+app.include_router(sector.router, dependencies=[Depends(require_auth)])
+app.include_router(heatmap.router, dependencies=[Depends(require_auth)])
+app.include_router(seasonality.router, dependencies=[Depends(require_auth)])
 
 _database_url = os.getenv(
     "DATABASE_URL",
@@ -56,7 +58,7 @@ def home():
     return {"message": "StockChain API Running"}
 
 # 🔹 Existing API
-@app.get("/stocks/{symbol}")
+@app.get("/stocks/{symbol}", dependencies=[Depends(require_auth)])
 def get_stock(symbol: str):
     query = text("""
     SELECT date, symbol, open, high, low, close, volume
@@ -69,7 +71,7 @@ def get_stock(symbol: str):
     df = pd.read_sql(query, engine, params={"symbol": symbol.upper()})
     return dataframe_to_json_records(df)
 
-@app.get("/stocks/{symbol}/history")
+@app.get("/stocks/{symbol}/history", dependencies=[Depends(require_auth)])
 def get_stock_history(symbol: str, limit: int = 500):
     normalized_limit = max(50, min(limit, 2000))
     query = text("""
@@ -95,7 +97,7 @@ def get_stock_history(symbol: str, limit: int = 500):
     }
 
 # 🔥 ADD YOUR SIGNAL API HERE
-@app.get("/signals/{symbol}")
+@app.get("/signals/{symbol}", dependencies=[Depends(require_auth)])
 def get_signal(symbol: str):
     query = text("""
     SELECT date, close
@@ -154,7 +156,7 @@ def get_signal(symbol: str):
         "rsi": round(latest["rsi"], 2)
     }
 
-@app.get("/scan")
+@app.get("/scan", dependencies=[Depends(require_auth)])
 def scan_market():
     query = text("""
     SELECT recent_prices.date, symbols.symbol, recent_prices.close
