@@ -16,14 +16,28 @@ PERIOD_INTERVALS = {
     "1y": "1 year",
 }
 
+MIN_MARKET_CAP_CR = 3000
+
 LEADERS_QUERY = text("""
-WITH latest_prices AS (
-    SELECT sec.symbol, l.date, l.close
+WITH eligible AS (
+    SELECT sec.symbol
     FROM sectors sec
+    JOIN (
+        SELECT DISTINCT ON (symbol) symbol, market_cap
+        FROM fundamentals
+        WHERE market_cap IS NOT NULL
+        ORDER BY symbol, report_date DESC
+    ) f ON f.symbol = sec.symbol
+    WHERE f.market_cap >= :min_mcap
+),
+latest_prices AS (
+    SELECT e.symbol, l.date, l.close
+    FROM eligible e
     CROSS JOIN LATERAL (
         SELECT date, close
         FROM price_data
-        WHERE symbol = sec.symbol
+        WHERE symbol = e.symbol
+          AND volume > 0
         ORDER BY date DESC
         LIMIT 1
     ) l
@@ -37,6 +51,7 @@ symbol_returns AS (
         SELECT close
         FROM price_data old_price
         WHERE old_price.symbol = latest.symbol
+          AND old_price.volume > 0
           AND old_price.date <= latest.date - CAST(:lookback_interval AS interval)
         ORDER BY old_price.date DESC
         LIMIT 1
@@ -80,7 +95,7 @@ def get_sector_leaders_records(period: str, sector: str | None):
     df = pd.read_sql(
         LEADERS_QUERY,
         engine,
-        params={"lookback_interval": get_lookback_interval(period), "sector": sector}
+        params={"lookback_interval": get_lookback_interval(period), "sector": sector, "min_mcap": MIN_MARKET_CAP_CR}
     )
 
     return tuple(df.to_dict(orient="records"))

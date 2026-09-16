@@ -44,6 +44,7 @@ def get_sector_strength_frame(period: str):
             SELECT date, close
             FROM price_data
             WHERE symbol = e.symbol
+              AND volume > 0
             ORDER BY date DESC
             LIMIT 1
         ) l
@@ -57,6 +58,7 @@ def get_sector_strength_frame(period: str):
             SELECT close
             FROM price_data old_price
             WHERE old_price.symbol = latest.symbol
+              AND old_price.volume > 0
               AND old_price.date <= latest.date - CAST(:lookback_interval AS interval)
             ORDER BY old_price.date DESC
             LIMIT 1
