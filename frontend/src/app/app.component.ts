@@ -1,26 +1,28 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BacktestResult, BreakoutStock, SingleSymbolBacktestResult, StockHistoryPoint, SwingCriterionScore, SwingService, SwingStock } from './swing.service';
 import { SectorHeatmapComponent } from './components/sector-heatmap/sector-heatmap.component';
 import { HeatmapService, SectorHeatmapItem, SectorRotationRankItem } from './services/heatmap.service';
 import { SeasonalStocksComponent } from './components/seasonal-stocks/seasonal-stocks.component';
 import { AuthService } from './auth.service';
+import { OpportunitiesComponent } from './components/opportunities/opportunities.component';
 
 type SortOption = 'scoreDesc' | 'scoreAsc' | 'symbolAsc' | 'symbolDesc' | 'promoterHolding' | 'breakoutOverlap' | 'sectorLeader';
-type ScreenerTab = 'swing' | 'breakout' | 'heatmap' | 'seasonality' | 'backtest';
+type ScreenerTab = 'opportunities' | 'swing' | 'breakout' | 'heatmap' | 'seasonality' | 'backtest';
 type ScoreFilterOption = 'all' | '60' | '70' | '80' | '90';
 type SectorPeriodOption = '1d' | '1w' | '1m' | '3m' | '6m' | '1y';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, SectorHeatmapComponent, SeasonalStocksComponent],
+  imports: [CommonModule, FormsModule, OpportunitiesComponent, SectorHeatmapComponent, SeasonalStocksComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent implements OnInit {
+  @ViewChild(OpportunitiesComponent) opportunitiesComponent?: OpportunitiesComponent;
   private readonly defaultVisibleStocksCount = 50;
   private readonly breakoutSymbols = new Set<string>();
   private readonly sectorLeaderSymbols = new Set<string>();
@@ -54,7 +56,7 @@ export class AppComponent implements OnInit {
   searchQuery = '';
   scoreFilterOption: ScoreFilterOption = 'all';
   sortOption: SortOption = 'scoreDesc';
-  activeTab: ScreenerTab = 'swing';
+  activeTab: ScreenerTab = 'opportunities';
   selectedSwingSymbol = '';
   swingChartLoading = false;
   swingChartError = '';
@@ -254,6 +256,7 @@ export class AppComponent implements OnInit {
   }
 
   refreshData(forceRefresh = false): void {
+    this.opportunitiesComponent?.loadLatest();
     this.loadSwingData(forceRefresh);
     this.loadBreakoutData(forceRefresh);
     this.loadSectorHeatmapData(forceRefresh);

@@ -1,0 +1,99 @@
+<section class="opportunity-shell">
+  <header class="opportunity-header">
+    <div>
+      <p class="kicker">StockChain Intelligence</p>
+      <h2>Breakout Opportunities</h2>
+      <p class="description">Only setups that pass quality, liquidity, market-regime, risk, and score requirements reach this list.</p>
+    </div>
+    <button type="button" class="run-btn" (click)="runPipeline()" [disabled]="running || loading">
+      {{ running ? 'Running analysis...' : 'Run Opportunity Pipeline' }}
+    </button>
+  </header>
+
+  <p class="state" *ngIf="loading">Loading the latest opportunity run...</p>
+  <p class="state error" *ngIf="error">{{ error }}</p>
+
+  <ng-container *ngIf="!loading && run">
+    <section class="market-card">
+      <div>
+        <p class="label">Market Regime</p>
+        <span class="regime" [ngClass]="regime.toLowerCase()">{{ regime }}</span>
+      </div>
+      <div>
+        <p class="label">Minimum Score</p>
+        <strong>{{ run.minimum_score ?? 85 }}/100</strong>
+      </div>
+      <div *ngIf="breadth !== null">
+        <p class="label">Market Breadth</p>
+        <strong>{{ breadth | number:'1.1-1' }}%</strong>
+      </div>
+      <div>
+        <p class="label">Last Generated</p>
+        <strong>{{ run.generated_at ? (run.generated_at | date:'medium') : 'Not available' }}</strong>
+      </div>
+      <p class="regime-reason">{{ regimeReason }}</p>
+    </section>
+
+    <section class="funnel" *ngIf="run.stage_counts">
+      <article class="funnel-stage" *ngFor="let stage of stages; let last = last">
+        <div>
+          <strong>{{ stageCount(stage.key) | number }}</strong>
+          <span>{{ stage.label }}</span>
+        </div>
+        <span class="arrow" *ngIf="!last" aria-hidden="true">→</span>
+      </article>
+    </section>
+
+    <section class="empty-state" *ngIf="!run.opportunities.length">
+      <span class="empty-mark">SC</span>
+      <h3>{{ run.message || 'No high-confidence opportunities today.' }}</h3>
+      <p>StockChain publishes Breakout V1 setups only in a Bull market when the final score is at least {{ run.minimum_score ?? 85 }}/100.</p>
+      <p class="empty-note">No recommendation is preferable to a low-quality setup.</p>
+    </section>
+
+    <section class="opportunity-list" *ngIf="run.opportunities.length">
+      <article class="opportunity-card" *ngFor="let opportunity of run.opportunities; trackBy: trackBySymbol">
+        <header class="card-header">
+          <div>
+            <p class="rank">#{{ opportunity.rank }} · {{ opportunity.setup_type }}</p>
+            <h3>{{ opportunity.symbol }}</h3>
+            <span class="status">{{ opportunity.status.split('_').join(' ') }}</span>
+          </div>
+          <div class="score">
+            <strong>{{ opportunity.score | number:'1.0-2' }}</strong>
+            <span>StockChain Score</span>
+          </div>
+        </header>
+
+        <div class="price-grid">
+          <div><span>Current Price</span><strong>{{ opportunity.current_price | currency:'INR':'symbol':'1.2-2' }}</strong></div>
+          <div><span>Entry Range</span><strong>{{ opportunity.entry_low | currency:'INR':'symbol':'1.2-2' }} – {{ opportunity.entry_high | currency:'INR':'symbol':'1.2-2' }}</strong></div>
+          <div><span>Target 1</span><strong>{{ opportunity.target_1 | currency:'INR':'symbol':'1.2-2' }}</strong></div>
+          <div><span>Target 2</span><strong>{{ opportunity.target_2 | currency:'INR':'symbol':'1.2-2' }}</strong></div>
+          <div class="risk"><span>Stop Loss</span><strong>{{ opportunity.stop_loss | currency:'INR':'symbol':'1.2-2' }}</strong></div>
+          <div><span>Risk / Reward</span><strong>1 : {{ opportunity.risk_reward | number:'1.1-2' }}</strong></div>
+        </div>
+
+        <div class="detail-grid">
+          <section>
+            <h4>Why StockChain selected it</h4>
+            <ul class="reasons">
+              <li *ngFor="let reason of opportunity.reasons">{{ reason }}</li>
+            </ul>
+          </section>
+          <section>
+            <h4>Score breakdown</h4>
+            <dl class="breakdown">
+              <div><dt>Fundamentals</dt><dd>{{ opportunity.fundamental_score * 0.35 | number:'1.1-1' }} / 35</dd></div>
+              <div><dt>Technical</dt><dd>{{ opportunity.technical_score | number:'1.1-1' }} / 25</dd></div>
+              <div><dt>Momentum</dt><dd>{{ opportunity.momentum_score | number:'1.1-1' }} / 10</dd></div>
+              <div><dt>Liquidity</dt><dd>{{ opportunity.liquidity_score | number:'1.1-1' }} / 10</dd></div>
+              <div><dt>Market Regime</dt><dd>{{ opportunity.regime_score | number:'1.1-1' }} / 10</dd></div>
+              <div><dt>Risk / Reward</dt><dd>{{ opportunity.risk_reward_score | number:'1.1-1' }} / 10</dd></div>
+            </dl>
+          </section>
+        </div>
+      </article>
+    </section>
+  </ng-container>
+</section>
