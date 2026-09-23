@@ -163,6 +163,10 @@ def run_opportunity_backtest(start_date=None, end_date=None, save_to_db=True):
     start_date = start_date or end_date - timedelta(days=365)
     if start_date >= end_date:
         raise ValueError("start_date must be earlier than end_date")
+    if end_date > date.today():
+        raise ValueError("end_date cannot be in the future")
+    if (end_date - start_date).days > 3650:
+        raise ValueError("backtest period cannot exceed 10 years")
     prices = _load_prices(start_date, end_date)
     scores = _load_scores(end_date)
     market = _prepare_market(prices)

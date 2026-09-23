@@ -357,6 +357,17 @@
           {{ opportunityBacktestRunning ? 'Running Opportunity Backtest...' : 'Run Opportunity V1' }}
         </button>
       </div>
+      <div class="controls">
+        <label>
+          <span>Start Date</span>
+          <input type="date" [(ngModel)]="opportunityBacktestStartDate" [max]="opportunityBacktestEndDate" [disabled]="opportunityBacktestRunning" />
+        </label>
+        <label>
+          <span>End Date</span>
+          <input type="date" [(ngModel)]="opportunityBacktestEndDate" [min]="opportunityBacktestStartDate" [max]="opportunityBacktestMaxDate" [disabled]="opportunityBacktestRunning" />
+        </label>
+      </div>
+      <p class="muted">A longer period processes more stock-date observations and takes more time.</p>
       <p class="state error" *ngIf="opportunityBacktestError">{{ opportunityBacktestError }}</p>
       <p class="state" *ngIf="!opportunityBacktest && !opportunityBacktestError">No Opportunity V1 result yet.</p>
       <ng-container *ngIf="opportunityBacktest as result">

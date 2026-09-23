@@ -1,6 +1,9 @@
-import pandas as pd
+from datetime import date, timedelta
 
-from services.opportunity_backtest import _metrics, _regime_for_row, _simulate_trade
+import pandas as pd
+import pytest
+
+from services.opportunity_backtest import _metrics, _regime_for_row, _simulate_trade, run_opportunity_backtest
 
 
 def test_regime_classification_matches_opportunity_rules():
@@ -40,3 +43,13 @@ def test_metrics_include_targets_stops_mfe_and_mae():
     assert metrics["stop_loss_rate"] == 50
     assert metrics["avg_mfe"] == 4
     assert metrics["avg_mae"] == -2.5
+
+
+def test_backtest_rejects_invalid_date_ranges():
+    today = date.today()
+    with pytest.raises(ValueError, match="earlier"):
+        run_opportunity_backtest(today, today, save_to_db=False)
+    with pytest.raises(ValueError, match="future"):
+        run_opportunity_backtest(today - timedelta(days=1), today + timedelta(days=1), save_to_db=False)
+    with pytest.raises(ValueError, match="10 years"):
+        run_opportunity_backtest(today - timedelta(days=3651), today, save_to_db=False)

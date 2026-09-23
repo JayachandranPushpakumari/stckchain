@@ -13,6 +13,12 @@ type ScreenerTab = 'opportunities' | 'swing' | 'breakout' | 'heatmap' | 'seasona
 type ScoreFilterOption = 'all' | '60' | '70' | '80' | '90';
 type SectorPeriodOption = '1d' | '1w' | '1m' | '3m' | '6m' | '1y';
 
+function dateInputValue(yearOffset = 0): string {
+  const value = new Date();
+  value.setFullYear(value.getFullYear() + yearOffset);
+  return value.toISOString().slice(0, 10);
+}
+
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -76,6 +82,9 @@ export class AppComponent implements OnInit {
   opportunityBacktest: OpportunityBacktestResult | null = null;
   opportunityBacktestRunning = false;
   opportunityBacktestError = '';
+  opportunityBacktestStartDate = dateInputValue(-1);
+  opportunityBacktestEndDate = dateInputValue();
+  readonly opportunityBacktestMaxDate = dateInputValue();
   symbolBacktestInput = '';
   symbolBacktestLoading = false;
   symbolBacktestError = '';
@@ -571,12 +580,25 @@ export class AppComponent implements OnInit {
   }
 
   runOpportunityBacktest(): void {
-    if (!globalThis.confirm('Run the Opportunity V1 backtest for the last year? This can take several minutes.')) {
+    if (!this.opportunityBacktestStartDate || !this.opportunityBacktestEndDate) {
+      this.opportunityBacktestError = 'Select both a start date and an end date.';
+      return;
+    }
+    if (this.opportunityBacktestStartDate >= this.opportunityBacktestEndDate) {
+      this.opportunityBacktestError = 'Start date must be earlier than end date.';
+      return;
+    }
+    const periodDays = (Date.parse(this.opportunityBacktestEndDate) - Date.parse(this.opportunityBacktestStartDate)) / 86_400_000;
+    if (periodDays > 3650) {
+      this.opportunityBacktestError = 'The selected period cannot exceed 10 years.';
+      return;
+    }
+    if (!globalThis.confirm(`Run the Opportunity V1 backtest from ${this.opportunityBacktestStartDate} to ${this.opportunityBacktestEndDate}? This can take several minutes.`)) {
       return;
     }
     this.opportunityBacktestRunning = true;
     this.opportunityBacktestError = '';
-    this.swingService.runOpportunityBacktest().subscribe({
+    this.swingService.runOpportunityBacktest(this.opportunityBacktestStartDate, this.opportunityBacktestEndDate).subscribe({
       next: (result) => {
         this.opportunityBacktest = result;
         this.opportunityBacktestRunning = false;

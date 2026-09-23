@@ -290,7 +290,8 @@ export class SwingService {
     return this.http.get<OpportunityBacktestResult>(`${this.opportunityBacktestEndpoint}/latest`);
   }
 
-  runOpportunityBacktest(): Observable<OpportunityBacktestResult> {
-    return this.http.post<OpportunityBacktestResult>(`${this.opportunityBacktestEndpoint}/run`, {});
+  runOpportunityBacktest(startDate: string, endDate: string): Observable<OpportunityBacktestResult> {
+    const url = `${this.opportunityBacktestEndpoint}/run?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`;
+    return this.http.post<OpportunityBacktestResult>(url, {});
   }
 }
