@@ -27,7 +27,7 @@ def test_health():
 
 
 def test_data_routes_require_authentication():
-    for path in ("/signals/RELIANCE", "/scan", "/screen/swing"):
+    for path in ("/signals/RELIANCE", "/scan", "/screen/swing", "/internal/opportunities/latest"):
         assert client.get(path).status_code == 401
 
 

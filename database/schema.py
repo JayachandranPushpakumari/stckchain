@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Column, Date, DateTime, Float, Integer, MetaData, Numeric, String, Table, Text, UniqueConstraint, Index
+from sqlalchemy import BigInteger, Column, Date, DateTime, Float, ForeignKey, Integer, JSON, MetaData, Numeric, String, Table, Text, UniqueConstraint, Index
 
 metadata = MetaData()
 
@@ -108,3 +108,40 @@ Table(
     Column("total_trades", BigInteger), Column("win_rate", Float), Column("avg_return", Float),
     Column("profit_factor", Float), Column("max_drawdown", Float), Column("cagr", Float), Column("symbol", Text),
 )
+opportunity_runs = Table(
+    "opportunity_runs", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("setup_type", String(30), nullable=False),
+    Column("market_regime", String(20), nullable=False),
+    Column("stage_counts", JSON, nullable=False),
+    Column("minimum_score", Numeric(5, 2), nullable=False),
+    Column("generated_at", DateTime(timezone=True), nullable=False),
+)
+Table(
+    "opportunities", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("run_id", Integer, ForeignKey(opportunity_runs.c.id, ondelete="CASCADE"), nullable=False),
+    Column("symbol", String(50), nullable=False),
+    Column("setup_type", String(30), nullable=False),
+    Column("status", String(30), nullable=False),
+    Column("rank", Integer, nullable=False),
+    Column("score", Numeric(5, 2), nullable=False),
+    Column("current_price", Numeric(14, 2), nullable=False),
+    Column("entry_low", Numeric(14, 2), nullable=False),
+    Column("entry_high", Numeric(14, 2), nullable=False),
+    Column("target_1", Numeric(14, 2), nullable=False),
+    Column("target_2", Numeric(14, 2), nullable=False),
+    Column("stop_loss", Numeric(14, 2), nullable=False),
+    Column("risk_reward", Numeric(6, 2), nullable=False),
+    Column("fundamental_score", Numeric(5, 2), nullable=False),
+    Column("technical_score", Numeric(5, 2), nullable=False),
+    Column("momentum_score", Numeric(5, 2), nullable=False),
+    Column("liquidity_score", Numeric(5, 2), nullable=False),
+    Column("regime_score", Numeric(5, 2), nullable=False),
+    Column("risk_reward_score", Numeric(5, 2), nullable=False),
+    Column("market_regime", String(20), nullable=False),
+    Column("reasons", JSON, nullable=False),
+    UniqueConstraint("run_id", "symbol", name="opportunities_run_symbol_key"),
+)
+Index("idx_opportunities_run_rank", metadata.tables["opportunities"].c.run_id, metadata.tables["opportunities"].c.rank)
+Index("idx_opportunities_symbol", metadata.tables["opportunities"].c.symbol)

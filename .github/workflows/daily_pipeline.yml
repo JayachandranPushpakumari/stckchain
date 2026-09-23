@@ -38,6 +38,10 @@ jobs:
         working-directory: data_pipeline
         run: python fetch_yahoo_data.py
 
+      - name: Fetch NIFTY 50 index data
+        working-directory: data_pipeline
+        run: python fetch_market_index.py
+
       - name: Calculate Relative Strength
         working-directory: backend
         run: python services/relative_strength.py
@@ -53,3 +57,7 @@ jobs:
       - name: Compute Breakout Screen
         working-directory: backend
         run: python services/screeners.py
+
+      - name: Generate Breakout Opportunities
+        working-directory: backend
+        run: python services/opportunities.py

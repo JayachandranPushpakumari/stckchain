@@ -17,6 +17,7 @@ from routes import sector_rotation
 from routes import sector
 from routes import heatmap
 from routes import seasonality
+from routes import opportunities
 
 
 app = FastAPI()
@@ -47,6 +48,7 @@ app.include_router(sector_rotation.router, dependencies=[Depends(require_auth)])
 app.include_router(sector.router, dependencies=[Depends(require_auth)])
 app.include_router(heatmap.router, dependencies=[Depends(require_auth)])
 app.include_router(seasonality.router, dependencies=[Depends(require_auth)])
+app.include_router(opportunities.router, dependencies=[Depends(require_auth)])
 
 @app.get("/")
 def home():

@@ -38,6 +38,7 @@ def calculate_indicators(df):
     low_close = (df["low"] - df["close"].shift()).abs()
     tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
     atr = tr.rolling(14).mean()
+    df["atr"] = atr
     
     plus_dm = df["high"].diff()
     minus_dm = -df["low"].diff()
