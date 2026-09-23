@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { BacktestResult, BreakoutStock, SingleSymbolBacktestResult, StockHistoryPoint, SwingCriterionScore, SwingService, SwingStock } from './swing.service';
+import { BacktestResult, BreakoutStock, OpportunityBacktestResult, SingleSymbolBacktestResult, StockHistoryPoint, SwingCriterionScore, SwingService, SwingStock } from './swing.service';
 import { SectorHeatmapComponent } from './components/sector-heatmap/sector-heatmap.component';
 import { HeatmapService, SectorHeatmapItem, SectorRotationRankItem } from './services/heatmap.service';
 import { SeasonalStocksComponent } from './components/seasonal-stocks/seasonal-stocks.component';
@@ -73,6 +73,9 @@ export class AppComponent implements OnInit {
   backtestResults: BacktestResult[] = [];
   topStrategies: BacktestResult[] = [];
   backtestRunning = false;
+  opportunityBacktest: OpportunityBacktestResult | null = null;
+  opportunityBacktestRunning = false;
+  opportunityBacktestError = '';
   symbolBacktestInput = '';
   symbolBacktestLoading = false;
   symbolBacktestError = '';
@@ -533,6 +536,7 @@ export class AppComponent implements OnInit {
   }
 
   loadBacktestData(): void {
+    this.loadOpportunityBacktest();
     this.backtestLoading = true;
     this.backtestError = '';
 
@@ -545,6 +549,42 @@ export class AppComponent implements OnInit {
       error: () => {
         this.backtestError = 'Unable to load backtest results. Make sure backend is running on :8000.';
         this.backtestLoading = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  loadOpportunityBacktest(): void {
+    this.opportunityBacktestError = '';
+    this.swingService.getLatestOpportunityBacktest().subscribe({
+      next: (result) => {
+        this.opportunityBacktest = result;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        if (err?.status !== 404) {
+          this.opportunityBacktestError = 'Unable to load the Opportunity V1 backtest.';
+        }
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  runOpportunityBacktest(): void {
+    if (!globalThis.confirm('Run the Opportunity V1 backtest for the last year? This can take several minutes.')) {
+      return;
+    }
+    this.opportunityBacktestRunning = true;
+    this.opportunityBacktestError = '';
+    this.swingService.runOpportunityBacktest().subscribe({
+      next: (result) => {
+        this.opportunityBacktest = result;
+        this.opportunityBacktestRunning = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.opportunityBacktestError = 'Failed to run the Opportunity V1 backtest.';
+        this.opportunityBacktestRunning = false;
         this.cdr.markForCheck();
       },
     });

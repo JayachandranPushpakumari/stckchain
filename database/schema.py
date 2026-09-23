@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Column, Date, DateTime, Float, ForeignKey, Integer, JSON, MetaData, Numeric, String, Table, Text, UniqueConstraint, Index
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Float, ForeignKey, Integer, JSON, MetaData, Numeric, String, Table, Text, UniqueConstraint, Index
 
 metadata = MetaData()
 
@@ -145,3 +145,40 @@ Table(
 )
 Index("idx_opportunities_run_rank", metadata.tables["opportunities"].c.run_id, metadata.tables["opportunities"].c.rank)
 Index("idx_opportunities_symbol", metadata.tables["opportunities"].c.symbol)
+opportunity_backtest_runs = Table(
+    "opportunity_backtest_runs", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("strategy", String(50), nullable=False),
+    Column("start_date", Date, nullable=False),
+    Column("end_date", Date, nullable=False),
+    Column("stage_counts", JSON, nullable=False),
+    Column("metrics", JSON, nullable=False),
+    Column("generated_at", DateTime(timezone=True), nullable=False),
+)
+opportunity_backtest_trades = Table(
+    "opportunity_backtest_trades", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("run_id", Integer, ForeignKey(opportunity_backtest_runs.c.id, ondelete="CASCADE"), nullable=False),
+    Column("symbol", String(50), nullable=False),
+    Column("signal_date", Date, nullable=False),
+    Column("entry_date", Date, nullable=False),
+    Column("exit_date", Date, nullable=False),
+    Column("entry_price", Numeric(14, 2), nullable=False),
+    Column("exit_price", Numeric(14, 2), nullable=False),
+    Column("entry_low", Numeric(14, 2), nullable=False),
+    Column("entry_high", Numeric(14, 2), nullable=False),
+    Column("stop_loss", Numeric(14, 2), nullable=False),
+    Column("target_1", Numeric(14, 2), nullable=False),
+    Column("target_2", Numeric(14, 2), nullable=False),
+    Column("score", Numeric(5, 2), nullable=False),
+    Column("market_regime", String(20), nullable=False),
+    Column("exit_reason", String(20), nullable=False),
+    Column("return_pct", Numeric(8, 2), nullable=False),
+    Column("target_1_hit", Boolean, nullable=False),
+    Column("target_2_hit", Boolean, nullable=False),
+    Column("stop_hit", Boolean, nullable=False),
+    Column("mfe_pct", Numeric(8, 2), nullable=False),
+    Column("mae_pct", Numeric(8, 2), nullable=False),
+)
+Index("idx_opportunity_backtest_trades_run", opportunity_backtest_trades.c.run_id)
+Index("idx_opportunity_backtest_trades_symbol", opportunity_backtest_trades.c.symbol)

@@ -64,6 +64,32 @@ export interface Trade {
   exit_reason: string;
 }
 
+export interface OpportunityBacktestMetrics {
+  total_trades: number;
+  win_rate: number;
+  avg_return: number;
+  profit_factor: number | null;
+  max_drawdown: number;
+  target_1_rate: number;
+  target_2_rate: number;
+  stop_loss_rate: number;
+  timeout_rate: number;
+  avg_mfe: number;
+  avg_mae: number;
+}
+
+export interface OpportunityBacktestResult {
+  id?: number;
+  run_id?: number;
+  strategy: string;
+  start_date: string;
+  end_date: string;
+  generated_at: string;
+  stage_counts: Record<string, number>;
+  metrics: OpportunityBacktestMetrics;
+  trades: unknown[];
+}
+
 export interface SingleSymbolBacktestResult {
   symbol?: string;
   total_trades?: number;
@@ -101,6 +127,7 @@ export class SwingService {
   private readonly backtestResultsEndpoint = `${environment.apiUrl}/backtest/results`;
   private readonly backtestTopStrategiesEndpoint = `${environment.apiUrl}/backtest/top-strategies`;
   private readonly runBacktestEndpoint = `${environment.apiUrl}/backtest/breakout`;
+  private readonly opportunityBacktestEndpoint = `${environment.apiUrl}/backtest/opportunities`;
   private readonly swingCacheKey = 'stockchain_swing_cache_v2';
   private readonly breakoutCacheKey = 'stockchain_breakout_cache_v2';
   private readonly historyCachePrefix = 'stockchain_history_cache_v1_';
@@ -257,5 +284,13 @@ export class SwingService {
   backtestSymbol(symbol: string): Observable<SingleSymbolBacktestResult> {
     const url = `${environment.apiUrl}/backtest/symbol/${encodeURIComponent(symbol.toUpperCase())}`;
     return this.http.get<SingleSymbolBacktestResult>(url);
+  }
+
+  getLatestOpportunityBacktest(): Observable<OpportunityBacktestResult> {
+    return this.http.get<OpportunityBacktestResult>(`${this.opportunityBacktestEndpoint}/latest`);
+  }
+
+  runOpportunityBacktest(): Observable<OpportunityBacktestResult> {
+    return this.http.post<OpportunityBacktestResult>(`${this.opportunityBacktestEndpoint}/run`, {});
   }
 }

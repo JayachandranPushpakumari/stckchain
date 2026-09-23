@@ -347,6 +347,38 @@
       </button>
     </section>
 
+    <section class="symbol-result-card opportunity-backtest-card">
+      <div class="result-header">
+        <div>
+          <h3>Breakout Opportunity V1</h3>
+          <p class="subtitle">Date-aware validation of quality, liquidity, fundamentals, breakout, Bull regime, score, and risk controls</p>
+        </div>
+        <button class="run-backtest-btn" (click)="runOpportunityBacktest()" [disabled]="opportunityBacktestRunning">
+          {{ opportunityBacktestRunning ? 'Running Opportunity Backtest...' : 'Run Opportunity V1' }}
+        </button>
+      </div>
+      <p class="state error" *ngIf="opportunityBacktestError">{{ opportunityBacktestError }}</p>
+      <p class="state" *ngIf="!opportunityBacktest && !opportunityBacktestError">No Opportunity V1 result yet.</p>
+      <ng-container *ngIf="opportunityBacktest as result">
+        <p class="muted">{{ result.start_date | date: 'mediumDate' }} – {{ result.end_date | date: 'mediumDate' }}</p>
+        <div class="result-metrics-grid">
+          <div class="result-metric"><span class="result-metric-label">Trades</span><strong>{{ result.metrics.total_trades }}</strong></div>
+          <div class="result-metric"><span class="result-metric-label">Win Rate</span><strong>{{ result.metrics.win_rate }}%</strong></div>
+          <div class="result-metric"><span class="result-metric-label">Avg Return</span><strong>{{ result.metrics.avg_return }}%</strong></div>
+          <div class="result-metric"><span class="result-metric-label">Profit Factor</span><strong>{{ result.metrics.profit_factor ?? 'N/A' }}</strong></div>
+          <div class="result-metric"><span class="result-metric-label">Target 1 Rate</span><strong>{{ result.metrics.target_1_rate }}%</strong></div>
+          <div class="result-metric"><span class="result-metric-label">Target 2 Rate</span><strong>{{ result.metrics.target_2_rate }}%</strong></div>
+          <div class="result-metric"><span class="result-metric-label">Stop Rate</span><strong>{{ result.metrics.stop_loss_rate }}%</strong></div>
+          <div class="result-metric"><span class="result-metric-label">Max Drawdown</span><strong>{{ result.metrics.max_drawdown }}%</strong></div>
+          <div class="result-metric"><span class="result-metric-label">Avg MFE</span><strong>{{ result.metrics.avg_mfe }}%</strong></div>
+          <div class="result-metric"><span class="result-metric-label">Avg MAE</span><strong>{{ result.metrics.avg_mae }}%</strong></div>
+        </div>
+        <div class="breakout-metrics">
+          <p *ngFor="let stage of result.stage_counts | keyvalue"><span>{{ stage.key.replaceAll('_', ' ') }}</span><strong>{{ stage.value }}</strong></p>
+        </div>
+      </ng-container>
+    </section>
+
     <section class="symbol-backtest-input">
       <div class="input-group">
         <label>
