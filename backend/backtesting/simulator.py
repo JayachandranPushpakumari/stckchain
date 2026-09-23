@@ -1,4 +1,4 @@
-BUY at next day open
-Target = 8%
-Stop Loss = 4%
-Max Hold = 10 days
+ENTRY_TIMING = "next_day_open"
+TARGET_PERCENT = 8
+STOP_LOSS_PERCENT = 4
+MAX_HOLD_DAYS = 10

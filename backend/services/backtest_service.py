@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from sqlalchemy import text
 
 from db import engine
 from strategies.breakout import breakout_strategy
@@ -37,14 +38,14 @@ def run_breakout_backtest():
 
     for symbol in symbols_df["symbol"]:
 
-        query = f"""
+        query = text("""
         SELECT date, open, high, low, close, volume
         FROM price_data
-        WHERE symbol = '{symbol}'
+        WHERE symbol = :symbol
         ORDER BY date
-        """
+        """)
 
-        df = pd.read_sql(query, engine, parse_dates=['date'], index_col='date')
+        df = pd.read_sql(query, engine, params={"symbol": symbol}, parse_dates=['date'], index_col='date')
 
         if len(df) < 250:
             continue
@@ -112,14 +113,14 @@ def get_top_strategies():
 # --------------------------------------------------
 def backtest_single_symbol(symbol: str):
 
-    query = f"""
+    query = text("""
     SELECT date, open, high, low, close, volume
     FROM price_data
-    WHERE symbol = '{symbol}'
+    WHERE symbol = :symbol
     ORDER BY date
-    """
+    """)
 
-    df = pd.read_sql(query, engine, parse_dates=['date'], index_col='date')
+    df = pd.read_sql(query, engine, params={"symbol": symbol}, parse_dates=['date'], index_col='date')
 
     if len(df) == 0:
         return {

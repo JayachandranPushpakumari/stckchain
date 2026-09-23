@@ -1,12 +1,10 @@
-import os
-from dotenv import load_dotenv
-from sqlalchemy import create_engine
+import sys
+from pathlib import Path
 
-load_dotenv()
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-DB_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres:Jayan%40123@localhost:5432/stockDB"
-)
+from stockchain_db import DATABASE_URL, engine
 
-engine = create_engine(DB_URL)
+DB_URL = DATABASE_URL

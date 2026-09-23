@@ -1,6 +1,7 @@
 import pandas as pd
 from pathlib import Path
 import sys
+from sqlalchemy import text
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
@@ -50,14 +51,14 @@ def calculate_sector_strength():
 
         for symbol in stocks:
 
-            query = f"""
+            query = text("""
             SELECT date, close
             FROM price_data
-            WHERE symbol='{symbol}'
+            WHERE symbol = :symbol
             ORDER BY date
-            """
+            """)
 
-            df = pd.read_sql(query, engine)
+            df = pd.read_sql(query, engine, params={"symbol": symbol})
 
             if len(df) < 60:
                 continue

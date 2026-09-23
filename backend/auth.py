@@ -9,8 +9,9 @@ from pydantic import BaseModel
 
 APP_USERNAME = os.getenv("APP_USERNAME", "")
 APP_PASSWORD = os.getenv("APP_PASSWORD", "")
-DEMO_USERNAME = os.getenv("DEMO_USERNAME", "demo")
-DEMO_PASSWORD = os.getenv("DEMO_PASSWORD", "demo123")
+DEMO_AUTH_ENABLED = os.getenv("ENABLE_DEMO_AUTH", "false").lower() == "true"
+DEMO_USERNAME = os.getenv("DEMO_USERNAME", "")
+DEMO_PASSWORD = os.getenv("DEMO_PASSWORD", "")
 TOKEN_TTL_SECONDS = int(os.getenv("TOKEN_TTL_SECONDS", str(7 * 24 * 60 * 60)))
 
 router = APIRouter()
@@ -62,7 +63,10 @@ def login(body: LoginRequest):
         secrets.compare_digest(body.username, APP_USERNAME)
         and secrets.compare_digest(body.password, APP_PASSWORD)
     ) or (
-        secrets.compare_digest(body.username, DEMO_USERNAME)
+        DEMO_AUTH_ENABLED
+        and bool(DEMO_USERNAME)
+        and bool(DEMO_PASSWORD)
+        and secrets.compare_digest(body.username, DEMO_USERNAME)
         and secrets.compare_digest(body.password, DEMO_PASSWORD)
     )
     if not valid:
@@ -73,7 +77,7 @@ def login(body: LoginRequest):
 
 @router.post("/auth/demo")
 def demo_login():
-    if not DEMO_USERNAME:
+    if not DEMO_AUTH_ENABLED or not DEMO_USERNAME or not DEMO_PASSWORD:
         raise HTTPException(status_code=404, detail="Demo login not enabled")
 
     return {"token": _issue_token(DEMO_USERNAME)}

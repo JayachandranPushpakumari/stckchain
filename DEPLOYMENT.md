@@ -140,9 +140,31 @@ psql "YOUR_RENDER_EXTERNAL_DATABASE_URL" -f stockdb_backup.sql
 ### Local Development (`.env` file)
 | Variable | Value |
 |---|---|
-| `DATABASE_URL` | `postgresql://postgres:Jayan%40123@localhost:5432/stockDB` |
+| `DATABASE_URL` | Local PostgreSQL connection URL |
 | `ALLOWED_ORIGINS` | `http://localhost:4200,http://127.0.0.1:4200` |
 | `APP_USERNAME` | e.g. `admin` |
 | `APP_PASSWORD` | e.g. `your-local-password` |
+| `ENABLE_DEMO_AUTH` | `false` unless demo access is intentionally enabled |
 
 If `APP_USERNAME`/`APP_PASSWORD` are not set, `/auth/login` returns 503 and all data endpoints stay locked.
+
+## Database backups
+
+Enable managed daily backups and point-in-time recovery on the production PostgreSQL plan. Before a migration or release, create and verify an additional logical backup:
+
+```powershell
+pg_dump --format=custom --no-owner --no-acl --dbname="$env:DATABASE_URL" --file="stockchain-backup.dump"
+pg_restore --list "stockchain-backup.dump"
+```
+
+Store backups in access-controlled storage outside the application repository. Test restoration into a temporary database periodically; an untested backup is not considered recoverable.
+
+## Scheduler failures
+
+The daily pipeline must use the repository `DATABASE_URL` secret and must remain red when any ingestion or analysis step fails. Enable GitHub Actions failure notifications for the repository. When a run fails:
+
+1. Review the failed step without printing connection strings or tokens.
+2. Confirm whether `price_data` contains the expected latest trading date.
+3. Re-run the workflow manually after correcting the cause.
+4. Verify relative strength, sector, and breakout outputs before treating the pipeline as recovered.
+5. Do not run overlapping pipeline executions.

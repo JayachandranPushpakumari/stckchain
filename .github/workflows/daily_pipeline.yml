@@ -5,12 +5,20 @@ on:
     - cron: '30 11 * * 1-5'  # 11:30 UTC = 17:00 IST, weekdays only (Mon-Fri)
   workflow_dispatch:           # Allow manual trigger from GitHub UI
 
+permissions:
+  contents: read
+
+concurrency:
+  group: stockchain-daily-pipeline
+  cancel-in-progress: false
+
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     env:
-      DATABASE_URL: postgresql://stockdb_eo2s_user:AC5ab89hzAhvEbYjjFKD3EIYeBPgauLY@dpg-dakus3dbedkc73akqfeg-a.oregon-postgres.render.com/stockdb_eo2s
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
     steps:
       - name: Checkout code

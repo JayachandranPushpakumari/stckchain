@@ -10,6 +10,7 @@ services:
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
     plan: free
     envVars:
       - key: DATABASE_URL
@@ -17,7 +18,7 @@ services:
           name: stockdb
           property: connectionString
       - key: ALLOWED_ORIGINS
-        value: https://jporg.in,https://www.jporg.in,http://jporg.in,http://www.jporg.in
+        value: https://jporg.in,https://www.jporg.in
       - key: APP_USERNAME
         sync: false
       - key: APP_PASSWORD

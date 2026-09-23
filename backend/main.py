@@ -1,12 +1,13 @@
 import os
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 import pandas as pd
 
 load_dotenv()
 from auth import router as auth_router, require_auth
+from db import engine
 from routes.signals import router as signal_router
 from routes.breakout import router as breakout_router
 from routes.swing import router as swing_router
@@ -47,15 +48,18 @@ app.include_router(sector.router, dependencies=[Depends(require_auth)])
 app.include_router(heatmap.router, dependencies=[Depends(require_auth)])
 app.include_router(seasonality.router, dependencies=[Depends(require_auth)])
 
-_database_url = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres:Jayan%40123@localhost:5432/stockDB"
-)
-engine = create_engine(_database_url)
-
 @app.get("/")
 def home():
     return {"message": "StockChain API Running"}
+
+@app.get("/health")
+def health():
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Database unavailable") from exc
+    return {"status": "ok"}
 
 # 🔹 Existing API
 @app.get("/stocks/{symbol}", dependencies=[Depends(require_auth)])
@@ -96,66 +100,6 @@ def get_stock_history(symbol: str, limit: int = 500):
         "prices": dataframe_to_json_records(df),
     }
 
-# 🔥 ADD YOUR SIGNAL API HERE
-@app.get("/signals/{symbol}", dependencies=[Depends(require_auth)])
-def get_signal(symbol: str):
-    query = text("""
-    SELECT date, close
-    FROM (
-        SELECT date, close
-        FROM price_data
-        WHERE symbol = :symbol
-        ORDER BY date DESC
-        LIMIT 60
-    ) AS recent_prices
-    ORDER BY date
-    """)
-    
-    normalized_symbol = symbol.upper()
-    df = pd.read_sql(query, engine, params={"symbol": normalized_symbol})
-
-    if len(df) < 50:
-        return {
-            "symbol": normalized_symbol,
-            "signal": "INSUFFICIENT_DATA",
-            "price": None,
-            "rsi": None
-        }
-
-    # Moving averages
-    df["ma20"] = df["close"].rolling(20).mean()
-    df["ma50"] = df["close"].rolling(50).mean()
-
-    # 🔥 RSI Calculation
-    delta = df["close"].diff()
-
-    gain = (delta.where(delta > 0, 0)).rolling(14).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
-
-    rs = gain / loss
-    df["rsi"] = 100 - (100 / (1 + rs))
-
-    latest = df.iloc[-1]
-
-    signal = "HOLD"
-
-    # 🔥 Combined strategy
-    if latest["ma20"] > latest["ma50"] and latest["rsi"] < 30:
-        signal = "STRONG BUY"
-    elif latest["ma20"] < latest["ma50"] and latest["rsi"] > 70:
-        signal = "STRONG SELL"
-    elif latest["ma20"] > latest["ma50"]:
-        signal = "BUY"
-    elif latest["ma20"] < latest["ma50"]:
-        signal = "SELL"
-
-    return {
-        "symbol": normalized_symbol,
-        "signal": signal,
-        "price": latest["close"],
-        "rsi": round(latest["rsi"], 2)
-    }
-
 @app.get("/scan", dependencies=[Depends(require_auth)])
 def scan_market():
     query = text("""
@@ -178,6 +122,9 @@ def scan_market():
     prices = pd.read_sql(query, engine)
 
     for symbol, df in prices.groupby("symbol"):
+        df = df.copy()
+        df["close"] = pd.to_numeric(df["close"], errors="coerce")
+        df = df.dropna(subset=["close"])
         if len(df) < 50:
             continue
 
@@ -195,7 +142,7 @@ def scan_market():
         if latest["ma20"] > latest["ma50"] and latest["rsi"] < 35:
             results.append({
                 "symbol": symbol,
-                "price": latest["close"],
+                "price": float(latest["close"]),
                 "rsi": round(latest["rsi"], 2),
                 "signal": "BUY"
             })

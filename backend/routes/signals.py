@@ -22,6 +22,8 @@ def get_signal(symbol: str):
 
     normalized_symbol = symbol.upper()
     df = pd.read_sql(query, engine, params={"symbol": normalized_symbol})
+    df["close"] = pd.to_numeric(df["close"], errors="coerce")
+    df = df.dropna(subset=["close"])
 
     if len(df) < 50:
         return {
@@ -45,5 +47,5 @@ def get_signal(symbol: str):
     return {
         "symbol": normalized_symbol,
         "signal": signal,
-        "price": latest["close"]
+        "price": float(latest["close"])
     }

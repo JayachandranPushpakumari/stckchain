@@ -1,22 +1,18 @@
-import sys
 import os
+import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
-from db import engine
-from sqlalchemy import text
+from database.schema import metadata
+from stockchain_db import engine
+
 
 def run_migration():
-    sql_file = os.path.join(os.path.dirname(__file__), 'create_fundamental_scores_table.sql')
-    
-    with open(sql_file, 'r') as f:
-        sql_script = f.read()
-    
-    with engine.connect() as connection:
-        connection.execute(text(sql_script))
-        connection.commit()
-    
-    print("Migration completed successfully! fundamental_scores table created.")
+    metadata.create_all(engine, checkfirst=True)
+    print("Database schema baseline is present.")
+
 
 if __name__ == "__main__":
     run_migration()
