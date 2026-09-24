@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
 
-import { MarketRegime, OpportunityRun, StockChainOpportunity } from '../../models/opportunity';
+import { BreakoutDiagnostic, BreakoutDiagnosticsRun, MarketRegime, OpportunityRun, StockChainOpportunity } from '../../models/opportunity';
 import { OpportunitiesService } from '../../services/opportunities.service';
 
 @Component({
@@ -17,6 +17,11 @@ export class OpportunitiesComponent implements OnInit {
   running = false;
   error = '';
   run: OpportunityRun | null = null;
+
+  diagnosticsLoading = false;
+  diagnosticsError = '';
+  diagnosticsRun: BreakoutDiagnosticsRun | null = null;
+  showDiagnostics = false;
 
   readonly stages = [
     { key: 'all_stocks', label: 'All Stocks' },
@@ -94,8 +99,39 @@ export class OpportunitiesComponent implements OnInit {
     return this.run?.stage_counts?.[key] ?? 0;
   }
 
-  trackBySymbol(_: number, opportunity: StockChainOpportunity): string {
-    return opportunity.symbol;
+  trackBySymbol(_: number, item: { symbol: string }): string {
+    return item.symbol;
+  }
+
+  toggleDiagnostics(): void {
+    this.showDiagnostics = !this.showDiagnostics;
+    if (this.showDiagnostics && !this.diagnosticsRun && !this.diagnosticsLoading) {
+      this.loadDiagnostics();
+    }
+  }
+
+  loadDiagnostics(): void {
+    this.diagnosticsLoading = true;
+    this.diagnosticsError = '';
+    this.opportunitiesService.getBreakoutDiagnostics().subscribe({
+      next: (run) => {
+        this.diagnosticsRun = run;
+        this.diagnosticsLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.diagnosticsError = 'Unable to load breakout diagnostics.';
+        this.diagnosticsLoading = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  diagnosticStatus(diagnostic: BreakoutDiagnostic): string {
+    if (diagnostic.opportunity) {
+      return 'Published';
+    }
+    return diagnostic.rejection_reason?.replace(/_/g, ' ') ?? 'Rejected';
   }
 
   private regimeExplanation(regime: MarketRegime): string {

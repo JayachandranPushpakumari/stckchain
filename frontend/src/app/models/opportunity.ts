@@ -55,3 +55,25 @@ export interface OpportunityRun {
   message: string | null;
   opportunities: StockChainOpportunity[];
 }
+
+export interface BreakoutDiagnostic {
+  symbol: string;
+  fundamental_score: number | null;
+  data_quality_pass: boolean;
+  liquidity_pass: boolean;
+  fundamental_pass: boolean;
+  patterns: string[];
+  pattern_reasons: string[];
+  pattern_result: string;
+  risk_reward_result: string | null;
+  opportunity: StockChainOpportunity | null;
+  rejection_reason: string | null;
+}
+
+export interface BreakoutDiagnosticsRun {
+  generated_at: string;
+  market_regime: MarketRegime | MarketRegimeDetail;
+  candidate_count: number;
+  published_count: number;
+  diagnostics: BreakoutDiagnostic[];
+}

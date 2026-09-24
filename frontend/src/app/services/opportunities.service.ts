@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../environments/environment';
-import { OpportunityRun } from '../models/opportunity';
+import { BreakoutDiagnosticsRun, OpportunityRun } from '../models/opportunity';
 
 @Injectable({ providedIn: 'root' })
 export class OpportunitiesService {
@@ -17,5 +17,9 @@ export class OpportunitiesService {
 
   runBreakoutPipeline(): Observable<OpportunityRun> {
     return this.http.post<OpportunityRun>(`${this.endpoint}/breakout/run`, {});
+  }
+
+  getBreakoutDiagnostics(): Observable<BreakoutDiagnosticsRun> {
+    return this.http.get<BreakoutDiagnosticsRun>(`${this.endpoint}/breakout/diagnostics`);
   }
 }

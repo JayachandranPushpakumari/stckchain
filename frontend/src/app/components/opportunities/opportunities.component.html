@@ -49,6 +49,36 @@
       <h3>{{ run.message || 'No high-confidence opportunities today.' }}</h3>
       <p>StockChain publishes only current breakout stocks with a fundamental score above 60 and at least one qualifying bullish chart pattern.</p>
       <p class="empty-note">No recommendation is preferable to a low-quality setup.</p>
+      <button type="button" class="run-btn" (click)="toggleDiagnostics()" [disabled]="diagnosticsLoading">
+        {{ diagnosticsLoading ? 'Loading diagnostics...' : (showDiagnostics ? 'Hide Breakout Diagnostics' : 'Show Breakout Diagnostics') }}
+      </button>
+    </section>
+
+    <section class="diagnostics-shell" *ngIf="showDiagnostics">
+      <h3>Breakout Opportunity Diagnostics</h3>
+      <p *ngIf="diagnosticsLoading">Loading diagnostics...</p>
+      <p class="state error" *ngIf="diagnosticsError">{{ diagnosticsError }}</p>
+
+      <ng-container *ngIf="!diagnosticsLoading && diagnosticsRun">
+        <p class="diagnostics-meta">
+          <strong>{{ diagnosticsRun.candidate_count }}</strong> breakout candidates passed data, liquidity and fundamental filters.
+          <strong>{{ diagnosticsRun.published_count }}</strong> were published.
+        </p>
+        <section class="diagnostics-list">
+          <article class="diagnostic-card" *ngFor="let diagnostic of diagnosticsRun.diagnostics; trackBy: trackBySymbol">
+            <div class="diagnostic-head">
+              <h4>{{ diagnostic.symbol }}</h4>
+              <span class="status" [class.published]="diagnostic.opportunity">{{ diagnosticStatus(diagnostic) }}</span>
+            </div>
+            <div class="diagnostic-body">
+              <p><span>Fundamental score:</span> <strong>{{ diagnostic.fundamental_score ?? 'N/A' }}</strong></p>
+              <p><span>Pattern result:</span> <strong>{{ diagnostic.pattern_result.replace('_', ' ') }}</strong></p>
+              <p *ngIf="diagnostic.patterns.length"><span>Matched patterns:</span> <strong>{{ diagnostic.patterns.join(', ') }}</strong></p>
+              <p *ngIf="diagnostic.rejection_reason && !diagnostic.opportunity"><span>Rejection reason:</span> <strong>{{ diagnostic.rejection_reason.replace('_', ' ') }}</strong></p>
+            </div>
+          </article>
+        </section>
+      </ng-container>
     </section>
 
     <section class="opportunity-list" *ngIf="run.opportunities.length">
