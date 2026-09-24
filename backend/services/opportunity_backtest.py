@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import numpy as np
 import pandas as pd
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 
 from db import engine
 from services.opportunities import (
@@ -112,50 +112,122 @@ def _metrics(trades):
     }
 
 
-def _load_prices(start_date, end_date):
-    history_start = start_date - timedelta(days=500)
-    return pd.read_sql(
+def _load_symbols(start_date, end_date):
+    rows = pd.read_sql(
         text("""
+        SELECT DISTINCT symbol
+        FROM price_data
+        WHERE symbol <> '^NSEI' AND date BETWEEN :start_date AND :end_date
+        ORDER BY symbol
+        """),
+        engine,
+        params={"start_date": start_date, "end_date": end_date},
+    )
+    return rows["symbol"].tolist()
+
+
+def _iter_symbol_data(symbols, start_date, end_date, chunk_size=100):
+    price_query = text("""
         SELECT symbol, date, open, high, low, close, volume
         FROM price_data
-        WHERE date BETWEEN :history_start AND :end_date
+        WHERE symbol IN :symbols AND date BETWEEN :history_start AND :end_date
         ORDER BY symbol, date
+    """).bindparams(bindparam("symbols", expanding=True))
+    score_query = text("""
+        SELECT symbol, total_score, screened_at
+        FROM fundamental_scores
+        WHERE symbol IN :symbols AND screened_at <= :end_date
+        ORDER BY symbol, screened_at
+    """).bindparams(bindparam("symbols", expanding=True))
+    for offset in range(0, len(symbols), chunk_size):
+        chunk = symbols[offset:offset + chunk_size]
+        prices = pd.read_sql(
+            price_query,
+            engine,
+            params={"symbols": chunk, "history_start": start_date - timedelta(days=500), "end_date": end_date},
+            parse_dates=["date"],
+        )
+        scores = pd.read_sql(
+            score_query,
+            engine,
+            params={"symbols": chunk, "end_date": datetime.combine(end_date + timedelta(days=1), datetime.min.time())},
+            parse_dates=["screened_at"],
+        )
+        price_groups = {symbol: rows.drop(columns="symbol").reset_index(drop=True) for symbol, rows in prices.groupby("symbol")}
+        score_groups = {symbol: rows.drop(columns="symbol").reset_index(drop=True) for symbol, rows in scores.groupby("symbol")}
+        for symbol in chunk:
+            yield symbol, price_groups.get(symbol, pd.DataFrame()), score_groups.get(symbol, pd.DataFrame(columns=["total_score", "screened_at"]))
+
+
+def _prepare_market(start_date, end_date):
+    history_start = start_date - timedelta(days=500)
+    nifty = pd.read_sql(
+        text("""
+        SELECT date, close
+        FROM price_data
+        WHERE symbol = '^NSEI' AND close > 0 AND date BETWEEN :history_start AND :end_date
+        ORDER BY date
         """),
         engine,
         params={"history_start": history_start, "end_date": end_date},
         parse_dates=["date"],
     )
-
-
-def _load_scores(end_date):
-    return pd.read_sql(
-        text("""
-        SELECT symbol, total_score, screened_at
-        FROM fundamental_scores
-        WHERE screened_at <= :end_date
-        ORDER BY symbol, screened_at
-        """),
-        engine,
-        params={"end_date": datetime.combine(end_date + timedelta(days=1), datetime.min.time())},
-        parse_dates=["screened_at"],
-    )
-
-
-def _prepare_market(prices):
-    nifty = prices[prices["symbol"] == "^NSEI"].copy()
     nifty["ma50"] = nifty["close"].rolling(50).mean()
     nifty["ma200"] = nifty["close"].rolling(200).mean()
-    stocks = prices[prices["symbol"] != "^NSEI"].copy()
-    stocks["ma50"] = stocks.groupby("symbol")["close"].transform(lambda values: values.rolling(50).mean())
-    stocks["above_ma50"] = stocks["close"] > stocks["ma50"]
-    breadth = stocks.dropna(subset=["close", "ma50"]).groupby("date")["above_ma50"].mean().mul(100)
-    market = nifty.merge(breadth.rename("breadth"), left_on="date", right_index=True, how="left")
+    breadth = pd.read_sql(
+        text("""
+        WITH moving_averages AS (
+            SELECT symbol, date, close,
+                   AVG(close) OVER (PARTITION BY symbol ORDER BY date ROWS BETWEEN 49 PRECEDING AND CURRENT ROW) AS ma50,
+                   COUNT(*) OVER (PARTITION BY symbol ORDER BY date ROWS BETWEEN 49 PRECEDING AND CURRENT ROW) AS observations
+            FROM price_data
+            WHERE symbol <> '^NSEI' AND close > 0 AND date BETWEEN :history_start AND :end_date
+        )
+        SELECT date, 100.0 * AVG(CASE WHEN close > ma50 THEN 1.0 ELSE 0.0 END) AS breadth
+        FROM moving_averages
+        WHERE observations = 50
+        GROUP BY date
+        ORDER BY date
+        """),
+        engine,
+        params={"history_start": history_start, "end_date": end_date},
+        parse_dates=["date"],
+    )
+    market = nifty.merge(breadth, on="date", how="left")
     market[["regime", "regime_score"]] = market.apply(
         lambda row: pd.Series(_regime_for_row(row["close"], row["ma50"], row["ma200"], row["breadth"]))
         if pd.notna(row[["close", "ma50", "ma200", "breadth"]]).all() else pd.Series(["UNKNOWN", 0]),
         axis=1,
     )
     return market.set_index("date")[["breadth", "regime", "regime_score"]].to_dict("index")
+
+
+def _momentum_percentile(symbol, signal_date):
+    value = pd.read_sql(
+        text("""
+        WITH ranked_prices AS (
+            SELECT symbol, close,
+                   ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY date DESC) AS rn
+            FROM price_data
+            WHERE close > 0 AND symbol <> '^NSEI'
+              AND date BETWEEN :history_start AND :signal_date
+        ), returns AS (
+            SELECT symbol,
+                   MAX(close) FILTER (WHERE rn = 1) / NULLIF(MAX(close) FILTER (WHERE rn = 64), 0) - 1 AS return_63
+            FROM ranked_prices
+            WHERE rn <= 64
+            GROUP BY symbol
+            HAVING COUNT(*) = 64
+        ), percentiles AS (
+            SELECT symbol, 100 * PERCENT_RANK() OVER (ORDER BY return_63) AS percentile
+            FROM returns
+        )
+        SELECT percentile FROM percentiles WHERE symbol = :symbol
+        """),
+        engine,
+        params={"symbol": symbol, "signal_date": signal_date, "history_start": signal_date - timedelta(days=500)},
+    )
+    return float(value.iloc[0]["percentile"]) if not value.empty else 0.0
 
 
 def run_opportunity_backtest(start_date=None, end_date=None, save_to_db=True):
@@ -167,17 +239,13 @@ def run_opportunity_backtest(start_date=None, end_date=None, save_to_db=True):
         raise ValueError("end_date cannot be in the future")
     if (end_date - start_date).days > 3650:
         raise ValueError("backtest period cannot exceed 10 years")
-    prices = _load_prices(start_date, end_date)
-    scores = _load_scores(end_date)
-    market = _prepare_market(prices)
-    stock_prices = prices[prices["symbol"] != "^NSEI"].copy()
-    stock_prices["return_63"] = stock_prices.groupby("symbol")["close"].pct_change(63, fill_method=None)
-    stock_prices["momentum_percentile"] = stock_prices.groupby("date")["return_63"].rank(pct=True).mul(100)
-    momentum = stock_prices.set_index(["date", "symbol"])["momentum_percentile"].to_dict()
+    symbols = _load_symbols(start_date, end_date)
+    market = _prepare_market(start_date, end_date)
     stage_counts = {key: 0 for key in ("evaluated", "data_quality", "liquidity", "fundamentals", "breakout", "bull_regime", "high_confidence", "entered")}
     trades = []
-    for symbol, raw in prices[prices["symbol"] != "^NSEI"].groupby("symbol"):
-        raw = raw.sort_values("date").reset_index(drop=True)
+    for symbol, raw, symbol_scores in _iter_symbol_data(symbols, start_date, end_date):
+        if raw.empty:
+            continue
         valid = raw[["open", "high", "low", "close", "volume"]].gt(0).all(axis=1)
         if len(raw) < MIN_HISTORY_ROWS:
             continue
@@ -185,7 +253,7 @@ def run_opportunity_backtest(start_date=None, end_date=None, save_to_db=True):
         indicators["quality_pass"] = valid.rolling(MIN_HISTORY_ROWS).sum() >= int(MIN_HISTORY_ROWS * 0.95)
         indicators["median_turnover"] = (indicators["close"] * indicators["volume"]).rolling(20).median()
         indicators["median_volume"] = indicators["volume"].rolling(20).median()
-        symbol_scores = scores[scores["symbol"] == symbol][["screened_at", "total_score"]].dropna().sort_values("screened_at")
+        symbol_scores = symbol_scores.dropna().sort_values("screened_at")
         if symbol_scores.empty:
             indicators["fundamental_score"] = np.nan
         else:
@@ -211,7 +279,7 @@ def run_opportunity_backtest(start_date=None, end_date=None, save_to_db=True):
             if last_exit_date is not None and signal_date <= last_exit_date:
                 continue
             regime = market[signal_date]
-            momentum_percentile = float(momentum.get((signal_date, symbol), 0))
+            momentum_percentile = _momentum_percentile(symbol, signal_date)
             technical_score, _ = _technical_score(row, previous)
             entry_low = float(row["close"])
             entry_high = entry_low + 0.5 * float(row["atr"])
