@@ -24,7 +24,7 @@ export class OpportunitiesComponent implements OnInit {
     { key: 'liquidity', label: 'Liquidity' },
     { key: 'fundamentals', label: 'Fundamentals' },
     { key: 'breakout', label: 'Breakout' },
-    { key: 'market_regime', label: 'Market Regime' },
+    { key: 'chart_pattern', label: 'Bullish Pattern' },
     { key: 'risk_reward', label: 'Risk / Reward' },
     { key: 'high_confidence', label: 'Final' },
   ] as const;

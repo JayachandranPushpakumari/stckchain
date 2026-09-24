@@ -11,6 +11,7 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from db import engine
+from services.chart_patterns import detect_bullish_patterns
 from services.market_regime import classify_market_regime
 from services.technicals import calculate_indicators
 
@@ -59,7 +60,7 @@ def _eligible_universe():
                (q.history_rows >= :min_history AND q.valid_rows >= :min_valid
                 AND q.latest_date >= m.latest_date - INTERVAL '7 days') AS data_quality_pass,
                (l.median_turnover >= :min_turnover AND l.median_volume >= :min_volume) AS liquidity_pass,
-               (s.total_score >= :min_fundamental) AS fundamental_pass
+               (s.total_score > :min_fundamental) AS fundamental_pass
         FROM quality q
         JOIN liquidity l ON l.symbol = q.symbol
         LEFT JOIN latest_scores s ON s.symbol = q.symbol
@@ -117,6 +118,9 @@ def _build_opportunity(symbol, fundamental_score, momentum_percentile, median_tu
     prices = prices.dropna(subset=["open", "high", "low", "close", "volume"])
     if len(prices) < MIN_HISTORY_ROWS:
         return None
+    patterns = detect_bullish_patterns(prices)
+    if not patterns:
+        return None
     indicators = calculate_indicators(prices.copy())
     latest = indicators.iloc[-1]
     previous = indicators.iloc[-2]
@@ -147,6 +151,7 @@ def _build_opportunity(symbol, fundamental_score, momentum_percentile, median_tu
     risk_component = min(10.0, 5 * risk_reward)
     score = round(min(100.0, fundamental_component + technical_score + momentum_component + liquidity_component + regime["score"] + risk_component), 2)
     reasons = [
+        *[pattern["reason"] for pattern in patterns],
         f"Fundamental quality score is {float(fundamental_score):.0f}/100",
         f"Price closed {breakout_pct:.1f}% above the prior 20-day high",
         f"Volume expanded to {float(latest['volume_ratio']):.1f}x its 20-day average",
@@ -174,6 +179,7 @@ def _build_opportunity(symbol, fundamental_score, momentum_percentile, median_tu
         "regime_score": regime["score"],
         "risk_reward_score": round(risk_component, 2),
         "market_regime": regime["regime"],
+        "patterns": [pattern["label"] for pattern in patterns],
         "reasons": reasons,
     }
 
@@ -192,20 +198,20 @@ def generate_breakout_opportunities(save_to_db=True):
     candidates = fundamental[fundamental["symbol"].isin(set(breakouts["symbol"]))]
     stage_counts["breakout"] = int(len(candidates))
     regime = classify_market_regime()
-    regime_candidates = candidates if regime["regime"] == "BULL" else candidates.iloc[0:0]
-    stage_counts["market_regime"] = int(len(regime_candidates))
+    stage_counts["market_regime"] = int(len(candidates))
 
     momentum = _momentum_percentiles()
     opportunities = []
-    for row in regime_candidates.to_dict(orient="records"):
+    for row in candidates.to_dict(orient="records"):
         opportunity = _build_opportunity(
             row["symbol"], row["total_score"], momentum.get(row["symbol"], 0),
             row["median_turnover"], regime,
         )
         if opportunity:
             opportunities.append(opportunity)
+    stage_counts["chart_pattern"] = len(opportunities)
     stage_counts["risk_reward"] = len(opportunities)
-    opportunities = sorted((item for item in opportunities if item["score"] >= MIN_STOCKCHAIN_SCORE), key=lambda item: item["score"], reverse=True)
+    opportunities = sorted(opportunities, key=lambda item: item["score"], reverse=True)
     stage_counts["high_confidence"] = len(opportunities)
     for rank, opportunity in enumerate(opportunities, start=1):
         opportunity["rank"] = rank
@@ -215,8 +221,8 @@ def generate_breakout_opportunities(save_to_db=True):
         "setup_type": "BREAKOUT",
         "market_regime": regime,
         "stage_counts": stage_counts,
-        "minimum_score": MIN_STOCKCHAIN_SCORE,
-        "message": None if opportunities else "No high-confidence opportunities today.",
+        "minimum_score": 0,
+        "message": None if opportunities else "No breakout stocks with a qualifying bullish chart pattern today.",
         "opportunities": opportunities,
     }
     if save_to_db:

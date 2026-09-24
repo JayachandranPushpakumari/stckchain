@@ -7,6 +7,7 @@ export interface OpportunityStageCounts {
   fundamentals: number;
   breakout: number;
   market_regime: number;
+  chart_pattern?: number;
   risk_reward: number;
   high_confidence: number;
 }

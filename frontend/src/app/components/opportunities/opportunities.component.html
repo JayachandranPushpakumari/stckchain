@@ -3,7 +3,7 @@
     <div>
       <p class="kicker">StockChain Intelligence</p>
       <h2>Breakout Opportunities</h2>
-      <p class="description">Only setups that pass quality, liquidity, market-regime, risk, and score requirements reach this list.</p>
+      <p class="description">Breakout stocks with a fundamental score above 60 are published only when a qualifying bullish chart pattern is detected.</p>
     </div>
     <button type="button" class="run-btn" (click)="runPipeline()" [disabled]="running || loading">
       {{ running ? 'Running analysis...' : 'Run Opportunity Pipeline' }}
@@ -20,8 +20,8 @@
         <span class="regime" [ngClass]="regime.toLowerCase()">{{ regime }}</span>
       </div>
       <div>
-        <p class="label">Minimum Score</p>
-        <strong>{{ run.minimum_score ?? 85 }}/100</strong>
+        <p class="label">Fundamental Threshold</p>
+        <strong>&gt; 60/100</strong>
       </div>
       <div *ngIf="breadth !== null">
         <p class="label">Market Breadth</p>
@@ -47,7 +47,7 @@
     <section class="empty-state" *ngIf="!run.opportunities.length">
       <span class="empty-mark">SC</span>
       <h3>{{ run.message || 'No high-confidence opportunities today.' }}</h3>
-      <p>StockChain publishes Breakout V1 setups only in a Bull market when the final score is at least {{ run.minimum_score ?? 85 }}/100.</p>
+      <p>StockChain publishes only current breakout stocks with a fundamental score above 60 and at least one qualifying bullish chart pattern.</p>
       <p class="empty-note">No recommendation is preferable to a low-quality setup.</p>
     </section>
 
