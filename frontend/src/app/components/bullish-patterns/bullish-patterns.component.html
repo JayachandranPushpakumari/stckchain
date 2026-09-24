@@ -1,0 +1,35 @@
+<section class="pattern-shell">
+  <header class="pattern-header">
+    <div>
+      <p class="kicker">StockChain Pattern Intelligence</p>
+      <h2>Bullish Chart Patterns</h2>
+      <p>Fundamental stocks scoring above 60 with a currently detected bullish chart pattern. Existing breakout conditions are not required.</p>
+    </div>
+    <button type="button" (click)="load()" [disabled]="loading">{{ loading ? 'Scanning...' : 'Refresh Patterns' }}</button>
+  </header>
+
+  <p class="state" *ngIf="loading">Analyzing chart structures...</p>
+  <p class="state error" *ngIf="error">{{ error }}</p>
+
+  <ng-container *ngIf="!loading && result">
+    <section class="summary">
+      <article><span>Fundamental Candidates</span><strong>{{ result.fundamental_candidates }}</strong></article>
+      <article><span>Pattern Matches</span><strong>{{ result.matched_stocks }}</strong></article>
+      <article><span>Generated</span><strong>{{ result.generated_at | date:'medium' }}</strong></article>
+    </section>
+
+    <p class="state" *ngIf="!result.stocks.length">No fundamental stocks currently hold a qualifying bullish chart pattern.</p>
+
+    <section class="pattern-grid" *ngIf="result.stocks.length">
+      <article class="pattern-card" *ngFor="let stock of result.stocks; trackBy: trackBySymbol">
+        <header>
+          <div><h3>{{ stock.symbol }}</h3><span>Fundamental {{ stock.fundamental_score }}/100</span></div>
+          <strong>{{ stock.current_price | currency:'INR':'symbol':'1.2-2' }}</strong>
+        </header>
+        <div class="pattern-tags"><span *ngFor="let pattern of stock.patterns">{{ pattern }}</span></div>
+        <ul><li *ngFor="let reason of stock.reasons">{{ reason }}</li></ul>
+        <p class="as-of">Price data as of {{ stock.as_of_date | date:'mediumDate' }}</p>
+      </article>
+    </section>
+  </ng-container>
+</section>

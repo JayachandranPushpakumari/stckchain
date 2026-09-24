@@ -27,6 +27,13 @@
     </button>
     <button
       class="tab-btn"
+      [class.active]="activeTab === 'bullishPatterns'"
+      (click)="setActiveTab('bullishPatterns')"
+    >
+      Bullish Chart Pattern
+    </button>
+    <button
+      class="tab-btn"
       [class.active]="activeTab === 'swing'"
       (click)="setActiveTab('swing')"
     >
@@ -64,6 +71,7 @@
   </section>
 
   <app-opportunities *ngIf="!chartOnlyMode && activeTab === 'opportunities'"></app-opportunities>
+  <app-bullish-patterns *ngIf="!chartOnlyMode && activeTab === 'bullishPatterns'"></app-bullish-patterns>
 
   <section class="stats" *ngIf="!chartOnlyMode && activeTab === 'swing' && !error && stocks.length">
     <article class="stat">

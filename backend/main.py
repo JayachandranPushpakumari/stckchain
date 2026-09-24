@@ -10,6 +10,7 @@ from auth import router as auth_router, require_auth
 from db import engine
 from routes.signals import router as signal_router
 from routes.breakout import router as breakout_router
+from routes.bullish_patterns import router as bullish_patterns_router
 from routes.swing import router as swing_router
 from routes.backtest import router as backtest_router
 from routes.relative_strength import router as rs_router
@@ -41,6 +42,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(signal_router, dependencies=[Depends(require_auth)])
 app.include_router(breakout_router, dependencies=[Depends(require_auth)])
+app.include_router(bullish_patterns_router, dependencies=[Depends(require_auth)])
 app.include_router(swing_router, dependencies=[Depends(require_auth)])
 app.include_router(backtest_router, dependencies=[Depends(require_auth)])
 app.include_router(rs_router, dependencies=[Depends(require_auth)])
