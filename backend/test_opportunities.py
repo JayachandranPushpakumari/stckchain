@@ -27,7 +27,7 @@ def test_build_opportunity_uses_atr_risk_structure(monkeypatch):
     frame = indicator_frame()
     monkeypatch.setattr(opportunities, "_price_history", lambda symbol: frame.copy())
     monkeypatch.setattr(opportunities, "calculate_indicators", lambda prices: prices)
-    monkeypatch.setattr(opportunities, "detect_bullish_patterns", lambda prices: [{"label": "Flat Base", "reason": "Flat base breakout"}])
+    monkeypatch.setattr(opportunities, "detect_bullish_patterns", lambda prices, *args, **kwargs: [{"label": "Flat Base", "reason": "Flat base breakout"}])
     regime = {"regime": "BULL", "score": 10, "reason": "Bull market"}
     result = opportunities._build_opportunity("TEST", 90, 90, 50_000_000, regime)
     assert result["entry_low"] == 104.0
@@ -65,7 +65,7 @@ def test_diagnostics_report_pattern_rejections(monkeypatch):
     monkeypatch.setattr(opportunities, "_momentum_percentiles", lambda: {"PASS": 90, "FAIL": 90})
     monkeypatch.setattr(opportunities, "_price_history", lambda symbol: indicator_frame().copy().assign(symbol=symbol))
 
-    def mock_detect(prices):
+    def mock_detect(prices, *args, **kwargs):
         return [{"label": "Flat Base", "reason": "flat"}] if prices is not None and prices["symbol"].iloc[0] == "PASS" else []
 
     monkeypatch.setattr(opportunities, "detect_bullish_patterns", mock_detect)

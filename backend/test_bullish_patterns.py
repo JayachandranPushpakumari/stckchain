@@ -12,7 +12,7 @@ def test_scan_requires_score_above_60_and_returns_pattern_matches(monkeypatch):
     calls = iter([candidates, prices, prices])
     monkeypatch.setattr(pd, "read_sql", lambda *args, **kwargs: next(calls).copy())
     pattern_calls = {"count": 0}
-    def detect(frame):
+    def detect(frame, *args, **kwargs):
         pattern_calls["count"] += 1
         return [{"label": "Flat Base", "reason": "Flat base matched"}] if pattern_calls["count"] == 1 else []
     monkeypatch.setattr(bullish_patterns, "detect_bullish_patterns", detect)

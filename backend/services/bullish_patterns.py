@@ -7,6 +7,9 @@ from db import engine
 from services.chart_patterns import detect_bullish_patterns
 
 
+MAX_PATTERN_BREAKOUT_AGE_SESSIONS = 10
+
+
 def scan_bullish_patterns():
     candidates = pd.read_sql(
         text("""
@@ -35,7 +38,7 @@ def scan_bullish_patterns():
             engine,
             params={"symbol": row["symbol"]},
         ).sort_values("date").reset_index(drop=True)
-        patterns = detect_bullish_patterns(prices)
+        patterns = detect_bullish_patterns(prices, max_breakout_age_sessions=MAX_PATTERN_BREAKOUT_AGE_SESSIONS)
         if not patterns:
             continue
         latest = prices.dropna(subset=["close"]).iloc[-1]

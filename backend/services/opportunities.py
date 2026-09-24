@@ -21,6 +21,7 @@ MIN_MEDIAN_VOLUME = 50_000
 MIN_FUNDAMENTAL_SCORE = 60
 MIN_RISK_REWARD = 2.0
 MIN_STOCKCHAIN_SCORE = 85
+MAX_PATTERN_BREAKOUT_AGE_SESSIONS = 5
 
 
 def _eligible_universe():
@@ -118,7 +119,7 @@ def _build_opportunity(symbol, fundamental_score, momentum_percentile, median_tu
     prices = prices.dropna(subset=["open", "high", "low", "close", "volume"])
     if len(prices) < MIN_HISTORY_ROWS:
         return None
-    patterns = detect_bullish_patterns(prices)
+    patterns = detect_bullish_patterns(prices, max_breakout_age_sessions=MAX_PATTERN_BREAKOUT_AGE_SESSIONS)
     if not patterns:
         return None
     indicators = calculate_indicators(prices.copy())
@@ -206,7 +207,7 @@ def diagnose_breakout_opportunities():
         pattern_result = "insufficient_price_history" if len(prices) < MIN_HISTORY_ROWS else None
         patterns = []
         if pattern_result is None:
-            patterns = detect_bullish_patterns(prices)
+            patterns = detect_bullish_patterns(prices, max_breakout_age_sessions=MAX_PATTERN_BREAKOUT_AGE_SESSIONS)
             if not patterns:
                 pattern_result = "no_bullish_chart_pattern"
         opportunity = None
