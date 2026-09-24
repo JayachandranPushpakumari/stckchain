@@ -4,9 +4,14 @@ from fastapi import APIRouter
 from sqlalchemy import text
 
 from db import engine
-from services.opportunities import generate_breakout_opportunities
+from services.opportunities import diagnose_breakout_opportunities, generate_breakout_opportunities
 
 router = APIRouter(prefix="/internal/opportunities", tags=["internal-opportunities"])
+
+
+@router.get("/breakout/diagnostics")
+def breakout_opportunity_diagnostics():
+    return diagnose_breakout_opportunities()
 
 
 @router.post("/breakout/run")

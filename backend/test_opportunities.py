@@ -55,6 +55,29 @@ def test_non_bull_regime_does_not_block_pattern_opportunities(monkeypatch):
     assert result["stage_counts"]["chart_pattern"] == 1
 
 
+def test_diagnostics_report_pattern_rejections(monkeypatch):
+    candidates = pd.DataFrame([
+        {"symbol": "PASS", "data_quality_pass": True, "liquidity_pass": True, "fundamental_pass": True, "total_score": 90, "median_turnover": 50_000_000},
+        {"symbol": "FAIL", "data_quality_pass": True, "liquidity_pass": True, "fundamental_pass": True, "total_score": 90, "median_turnover": 50_000_000},
+    ])
+    monkeypatch.setattr(opportunities, "_breakout_candidates", lambda: candidates)
+    monkeypatch.setattr(opportunities, "classify_market_regime", lambda: {"regime": "BULL", "score": 10})
+    monkeypatch.setattr(opportunities, "_momentum_percentiles", lambda: {"PASS": 90, "FAIL": 90})
+    monkeypatch.setattr(opportunities, "_price_history", lambda symbol: indicator_frame().copy().assign(symbol=symbol))
+
+    def mock_detect(prices):
+        return [{"label": "Flat Base", "reason": "flat"}] if prices is not None and prices["symbol"].iloc[0] == "PASS" else []
+
+    monkeypatch.setattr(opportunities, "detect_bullish_patterns", mock_detect)
+    monkeypatch.setattr(opportunities, "_build_opportunity", lambda symbol, score, *args: {"symbol": symbol, "score": 90} if symbol == "PASS" else None)
+    result = opportunities.diagnose_breakout_opportunities()
+    assert result["candidate_count"] == 2
+    assert result["published_count"] == 1
+    by_symbol = {d["symbol"]: d for d in result["diagnostics"]}
+    assert by_symbol["PASS"]["opportunity"] is not None
+    assert by_symbol["FAIL"]["rejection_reason"] == "no_bullish_chart_pattern"
+
+
 def test_high_confidence_results_are_ranked(monkeypatch):
     universe = pd.DataFrame([
         {"symbol": "A", "data_quality_pass": True, "liquidity_pass": True, "fundamental_pass": True, "total_score": 90, "median_turnover": 50_000_000},

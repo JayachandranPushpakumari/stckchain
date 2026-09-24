@@ -202,8 +202,8 @@ def _prepare_market(start_date, end_date):
     return market.set_index("date")[["breadth", "regime", "regime_score"]].to_dict("index")
 
 
-def _momentum_percentile(symbol, signal_date):
-    value = pd.read_sql(
+def _momentum_percentiles(signal_date):
+    values = pd.read_sql(
         text("""
         WITH ranked_prices AS (
             SELECT symbol, close,
@@ -222,15 +222,15 @@ def _momentum_percentile(symbol, signal_date):
             SELECT symbol, 100 * PERCENT_RANK() OVER (ORDER BY return_63) AS percentile
             FROM returns
         )
-        SELECT percentile FROM percentiles WHERE symbol = :symbol
+        SELECT symbol, percentile FROM percentiles
         """),
         engine,
-        params={"symbol": symbol, "signal_date": signal_date, "history_start": signal_date - timedelta(days=500)},
+        params={"signal_date": signal_date, "history_start": signal_date - timedelta(days=500)},
     )
-    return float(value.iloc[0]["percentile"]) if not value.empty else 0.0
+    return dict(zip(values["symbol"], values["percentile"]))
 
 
-def run_opportunity_backtest(start_date=None, end_date=None, save_to_db=True):
+def run_opportunity_backtest(start_date=None, end_date=None, save_to_db=True, require_fundamentals=True):
     end_date = end_date or date.today()
     start_date = start_date or end_date - timedelta(days=365)
     if start_date >= end_date:
@@ -242,6 +242,7 @@ def run_opportunity_backtest(start_date=None, end_date=None, save_to_db=True):
     symbols = _load_symbols(start_date, end_date)
     market = _prepare_market(start_date, end_date)
     stage_counts = {key: 0 for key in ("evaluated", "data_quality", "liquidity", "fundamentals", "breakout", "bull_regime", "high_confidence", "entered")}
+    momentum_cache = {}
     trades = []
     for symbol, raw, symbol_scores in _iter_symbol_data(symbols, start_date, end_date):
         if raw.empty:
@@ -254,11 +255,14 @@ def run_opportunity_backtest(start_date=None, end_date=None, save_to_db=True):
         indicators["median_turnover"] = (indicators["close"] * indicators["volume"]).rolling(20).median()
         indicators["median_volume"] = indicators["volume"].rolling(20).median()
         symbol_scores = symbol_scores.dropna().sort_values("screened_at")
-        if symbol_scores.empty:
-            indicators["fundamental_score"] = np.nan
+        if require_fundamentals:
+            if symbol_scores.empty:
+                indicators["fundamental_score"] = np.nan
+            else:
+                indicators = pd.merge_asof(indicators.sort_values("date"), symbol_scores, left_on="date", right_on="screened_at", direction="backward")
+                indicators = indicators.rename(columns={"total_score": "fundamental_score"})
         else:
-            indicators = pd.merge_asof(indicators.sort_values("date"), symbol_scores, left_on="date", right_on="screened_at", direction="backward")
-            indicators = indicators.rename(columns={"total_score": "fundamental_score"})
+            indicators["fundamental_score"] = 100.0
         in_period = indicators["date"].dt.date.between(start_date, end_date)
         quality_pass = in_period & indicators["quality_pass"]
         liquidity_pass = quality_pass & indicators["median_turnover"].ge(MIN_MEDIAN_TURNOVER) & indicators["median_volume"].ge(MIN_MEDIAN_VOLUME)
@@ -279,7 +283,9 @@ def run_opportunity_backtest(start_date=None, end_date=None, save_to_db=True):
             if last_exit_date is not None and signal_date <= last_exit_date:
                 continue
             regime = market[signal_date]
-            momentum_percentile = _momentum_percentile(symbol, signal_date)
+            if signal_date not in momentum_cache:
+                momentum_cache[signal_date] = _momentum_percentiles(signal_date)
+            momentum_percentile = float(momentum_cache[signal_date].get(symbol, 0))
             technical_score, _ = _technical_score(row, previous)
             entry_low = float(row["close"])
             entry_high = entry_low + 0.5 * float(row["atr"])
@@ -303,7 +309,8 @@ def run_opportunity_backtest(start_date=None, end_date=None, save_to_db=True):
             last_exit_date = trade["exit_date"]
             stage_counts["entered"] += 1
     trades.sort(key=lambda trade: trade["signal_date"])
-    result = {"generated_at": datetime.now(timezone.utc), "start_date": start_date, "end_date": end_date, "strategy": "BREAKOUT_OPPORTUNITY_V1", "stage_counts": stage_counts, "metrics": _metrics(trades), "trades": trades}
+    strategy = "BREAKOUT_OPPORTUNITY_V1" if require_fundamentals else "BREAKOUT_OPPORTUNITY_V1_NO_FUNDAMENTALS"
+    result = {"generated_at": datetime.now(timezone.utc), "start_date": start_date, "end_date": end_date, "strategy": strategy, "stage_counts": stage_counts, "metrics": _metrics(trades), "trades": trades}
     if save_to_db:
         _save_result(result)
     return result

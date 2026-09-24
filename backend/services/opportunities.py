@@ -184,6 +184,67 @@ def _build_opportunity(symbol, fundamental_score, momentum_percentile, median_tu
     }
 
 
+def _breakout_candidates():
+    universe = _eligible_universe()
+    quality = universe[universe["data_quality_pass"].eq(True)]
+    liquid = quality[quality["liquidity_pass"].eq(True)]
+    fundamental = liquid[liquid["fundamental_pass"].eq(True)]
+    breakouts = pd.read_sql(text("SELECT symbol FROM breakout_results"), engine)
+    return fundamental[fundamental["symbol"].isin(set(breakouts["symbol"]))].copy()
+
+
+def diagnose_breakout_opportunities():
+    candidates = _breakout_candidates()
+    momentum = _momentum_percentiles()
+    regime = classify_market_regime()
+    diagnostics = []
+    for row in candidates.to_dict(orient="records"):
+        symbol = row["symbol"]
+        fundamental_score = row["total_score"]
+        prices = _price_history(symbol)
+        prices = prices.dropna(subset=["open", "high", "low", "close", "volume"])
+        pattern_result = "insufficient_price_history" if len(prices) < MIN_HISTORY_ROWS else None
+        patterns = []
+        if pattern_result is None:
+            patterns = detect_bullish_patterns(prices)
+            if not patterns:
+                pattern_result = "no_bullish_chart_pattern"
+        opportunity = None
+        risk_reward_result = None
+        if patterns:
+            opportunity = _build_opportunity(
+                symbol, fundamental_score, momentum.get(symbol, 0),
+                row["median_turnover"], regime,
+            )
+            if opportunity:
+                risk_reward_result = "passed"
+            else:
+                risk_reward_result = "risk_reward_or_indicator_rejection"
+        diagnostics.append({
+            "symbol": symbol,
+            "fundamental_score": float(fundamental_score) if fundamental_score is not None else None,
+            "data_quality_pass": bool(row["data_quality_pass"]),
+            "liquidity_pass": bool(row["liquidity_pass"]),
+            "fundamental_pass": bool(row["fundamental_pass"]),
+            "patterns": [pattern["label"] for pattern in patterns],
+            "pattern_reasons": [pattern["reason"] for pattern in patterns],
+            "pattern_result": pattern_result or ("matched" if patterns else "no_bullish_chart_pattern"),
+            "risk_reward_result": risk_reward_result,
+            "opportunity": opportunity,
+            "rejection_reason": (
+                None if opportunity else
+                (pattern_result or "no_bullish_chart_pattern" if not patterns else risk_reward_result)
+            ),
+        })
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "market_regime": regime,
+        "candidate_count": len(diagnostics),
+        "published_count": sum(1 for d in diagnostics if d["opportunity"] is not None),
+        "diagnostics": sorted(diagnostics, key=lambda d: d["symbol"]),
+    }
+
+
 def generate_breakout_opportunities(save_to_db=True):
     universe = _eligible_universe()
     stage_counts = {"all_stocks": int(len(universe))}
