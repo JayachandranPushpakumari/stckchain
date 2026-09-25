@@ -22,20 +22,40 @@ export class BullishPatternsComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.load();
+    this.loadCached();
   }
 
-  load(): void {
+  loadCached(): void {
     this.loading = true;
     this.error = '';
-    this.service.scan().subscribe({
+    this.service.getCached().subscribe({
       next: (result) => {
         this.result = result;
         this.loading = false;
         this.cdr.markForCheck();
       },
       error: () => {
-        this.error = 'Unable to scan bullish chart patterns.';
+        this.error = 'Unable to load bullish chart patterns.';
+        this.loading = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  refresh(): void {
+    if (!globalThis.confirm('Refresh bullish pattern scan? This recomputes patterns for the entire fundamental universe.')) {
+      return;
+    }
+    this.loading = true;
+    this.error = '';
+    this.service.refresh().subscribe({
+      next: (result) => {
+        this.result = result;
+        this.loading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.error = 'Unable to refresh bullish chart patterns.';
         this.loading = false;
         this.cdr.markForCheck();
       },

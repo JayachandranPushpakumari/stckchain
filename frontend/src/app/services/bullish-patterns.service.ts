@@ -24,7 +24,11 @@ export interface BullishPatternResponse {
 export class BullishPatternsService {
   constructor(private readonly http: HttpClient) {}
 
-  scan(): Observable<BullishPatternResponse> {
+  getCached(): Observable<BullishPatternResponse> {
     return this.http.get<BullishPatternResponse>(`${environment.apiUrl}/screen/bullish-patterns`);
+  }
+
+  refresh(): Observable<BullishPatternResponse> {
+    return this.http.post<BullishPatternResponse>(`${environment.apiUrl}/screen/bullish-patterns/refresh`, {});
   }
 }

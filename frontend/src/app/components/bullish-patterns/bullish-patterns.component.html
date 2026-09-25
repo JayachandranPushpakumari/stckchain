@@ -5,7 +5,7 @@
       <h2>Bullish Chart Patterns</h2>
       <p>Fundamental stocks scoring above 60 with a currently detected bullish chart pattern. Existing breakout conditions are not required.</p>
     </div>
-    <button type="button" (click)="load()" [disabled]="loading">{{ loading ? 'Scanning...' : 'Refresh Patterns' }}</button>
+    <button type="button" (click)="refresh()" [disabled]="loading">{{ loading ? 'Scanning...' : 'Refresh Patterns' }}</button>
   </header>
 
   <p class="state" *ngIf="loading">Analyzing chart structures...</p>
