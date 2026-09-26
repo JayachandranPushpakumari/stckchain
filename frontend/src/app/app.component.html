@@ -229,6 +229,7 @@
 
     <p class="state" *ngIf="breakoutLoading">Loading breakout screen...</p>
     <p class="state error" *ngIf="breakoutError">{{ breakoutError }}</p>
+    <p class="state" *ngIf="breakoutRefreshMessage">{{ breakoutRefreshMessage }}</p>
     <p class="state" *ngIf="!breakoutLoading && !breakoutError && !breakoutStocks.length">
       No breakout stocks found right now.
     </p>

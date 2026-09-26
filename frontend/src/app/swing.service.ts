@@ -160,10 +160,8 @@ export class SwingService {
     );
   }
 
-  refreshBreakoutScreen(): Observable<BreakoutStock[]> {
-    return this.http.post<BreakoutStock[]>(`${this.breakoutEndpoint}/refresh`, {}).pipe(
-      tap((data) => this.setCachedBreakoutData(data ?? [])),
-    );
+  startBreakoutRefresh(): Observable<{ status: string; message: string }> {
+    return this.http.post<{ status: string; message: string }>(`${this.breakoutEndpoint}/refresh`, {});
   }
 
   getStockHistory(symbol: string, forceRefresh = false): Observable<StockHistoryResponse> {

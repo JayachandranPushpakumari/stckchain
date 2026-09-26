@@ -2,6 +2,8 @@ from fastapi import APIRouter
 import pandas as pd
 from sqlalchemy import text
 
+from fastapi import BackgroundTasks
+
 from db import engine
 from services.screeners import save_breakouts
 
@@ -22,7 +24,6 @@ def breakout_screen():
 
 
 @router.post("/screen/breakout/refresh")
-def refresh_breakout_screen():
-    save_breakouts()
-    df = pd.read_sql(text("SELECT * FROM breakout_results"), engine)
-    return df.to_dict(orient="records")
+def refresh_breakout_screen(background_tasks: BackgroundTasks):
+    background_tasks.add_task(save_breakouts)
+    return {"status": "accepted", "message": "Breakout screen refresh started in the background."}

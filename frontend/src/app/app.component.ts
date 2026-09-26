@@ -44,6 +44,7 @@ export class AppComponent implements OnInit {
   avgScore = 0;
   breakoutLoading = true;
   breakoutError = '';
+  breakoutRefreshMessage = '';
   breakoutStocks: BreakoutStock[] = [];
   sectorHeatmapLoading = true;
   sectorHeatmapError = '';
@@ -184,14 +185,28 @@ export class AppComponent implements OnInit {
   }
 
   loadBreakoutData(forceRefresh = false): void {
+    if (forceRefresh) {
+      this.breakoutLoading = true;
+      this.breakoutError = '';
+      this.swingService.startBreakoutRefresh().subscribe({
+        next: () => {
+          this.breakoutRefreshMessage = 'Breakout refresh started. Wait a moment, then click Refresh Data again to load the latest results.';
+          this.breakoutLoading = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.breakoutError = 'Unable to start breakout refresh. The backend may be busy or unavailable.';
+          this.breakoutLoading = false;
+          this.cdr.markForCheck();
+        },
+      });
+      return;
+    }
+
     this.breakoutLoading = true;
     this.breakoutError = '';
-
-    const request = forceRefresh
-      ? this.swingService.refreshBreakoutScreen()
-      : this.swingService.getBreakoutScreen(false);
-
-    request.subscribe({
+    this.breakoutRefreshMessage = '';
+    this.swingService.getBreakoutScreen(false).subscribe({
       next: (response) => {
         this.breakoutStocks = response ?? [];
         this.breakoutSymbols.clear();
@@ -205,9 +220,7 @@ export class AppComponent implements OnInit {
       },
       error: () => {
         this.breakoutSymbols.clear();
-        this.breakoutError = forceRefresh
-          ? 'Unable to refresh breakout screen. The backend may be busy or unavailable.'
-          : 'Unable to load breakout screener data. Make sure backend is running on :8000.';
+        this.breakoutError = 'Unable to load breakout screener data. Make sure backend is running on :8000.';
         this.breakoutLoading = false;
         this.cdr.markForCheck();
       },
