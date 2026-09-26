@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install pandas sqlalchemy psycopg2-binary yfinance python-dotenv openpyxl ta
+          pip install pandas sqlalchemy psycopg2-binary "psycopg[binary]" yfinance python-dotenv openpyxl ta
 
       - name: Fetch Yahoo price data
         working-directory: data_pipeline
