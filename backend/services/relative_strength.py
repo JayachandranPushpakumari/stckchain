@@ -11,56 +11,39 @@ from db import engine
 
 
 def calculate_rs():
-
-    symbols = pd.read_sql(
-        "SELECT DISTINCT symbol FROM price_data",
-        engine
-    )
-
-    results = []
-
-    for symbol in symbols["symbol"]:
-
-        query = text("""
-        SELECT date, close
+    query = text("""
+    WITH ranked AS (
+        SELECT symbol, close,
+               ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY date DESC) AS rn
         FROM price_data
-        WHERE symbol = :symbol
-        ORDER BY date
-        """)
+        WHERE symbol <> '^NSEI' AND close IS NOT NULL AND close > 0
+    )
+    SELECT symbol,
+           MAX(close) FILTER (WHERE rn = 1) AS latest,
+           MAX(close) FILTER (WHERE rn = 21) AS one_month,
+           MAX(close) FILTER (WHERE rn = 63) AS three_month,
+           MAX(close) FILTER (WHERE rn = 126) AS six_month,
+           COUNT(*) AS rows
+    FROM ranked
+    GROUP BY symbol
+    HAVING COUNT(*) >= 150
+    """)
 
-        df = pd.read_sql(query, engine, params={"symbol": symbol})
+    df = pd.read_sql(query, engine)
 
-        if len(df) < 150:
-            continue
+    df = df[(df["one_month"] > 0) & (df["three_month"] > 0) & (df["six_month"] > 0)]
 
-        latest = df["close"].iloc[-1]
+    df["r1"] = ((df["latest"] - df["one_month"]) / df["one_month"]) * 100
+    df["r3"] = ((df["latest"] - df["three_month"]) / df["three_month"]) * 100
+    df["r6"] = ((df["latest"] - df["six_month"]) / df["six_month"]) * 100
 
-        one_month = df["close"].iloc[-21]
-        three_month = df["close"].iloc[-63]
-        six_month = df["close"].iloc[-126]
+    df["rs_score"] = 0.3 * df["r1"] + 0.3 * df["r3"] + 0.4 * df["r6"]
+    df = df.dropna(subset=["rs_score"])
 
-        if one_month == 0 or three_month == 0 or six_month == 0:
-            continue
-
-        r1 = ((latest - one_month) / one_month) * 100
-        r3 = ((latest - three_month) / three_month) * 100
-        r6 = ((latest - six_month) / six_month) * 100
-
-        rs_score = (
-            0.3 * r1 +
-            0.3 * r3 +
-            0.4 * r6
-        )
-
-        if pd.isna(rs_score):
-            continue
-
-        results.append({
-            "symbol": symbol,
-            "rs_score": round(rs_score, 2)
-        })
-
-    return pd.DataFrame(results)
+    return pd.DataFrame({
+        "symbol": df["symbol"],
+        "rs_score": df["rs_score"].round(2),
+    })
 
 
 def save_rs_rankings():
