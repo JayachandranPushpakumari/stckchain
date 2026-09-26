@@ -185,14 +185,14 @@ export class AppComponent implements OnInit {
   }
 
   loadBreakoutData(forceRefresh = false): void {
+    this.breakoutLoading = true;
+    this.breakoutError = '';
+
     if (forceRefresh) {
-      this.breakoutLoading = true;
-      this.breakoutError = '';
+      this.breakoutRefreshMessage = 'Recomputing breakouts on the server...';
       this.swingService.startBreakoutRefresh().subscribe({
         next: () => {
-          this.breakoutRefreshMessage = 'Breakout refresh started. Wait a moment, then click Refresh Data again to load the latest results.';
-          this.breakoutLoading = false;
-          this.cdr.markForCheck();
+          this.loadBreakoutData(false);
         },
         error: () => {
           this.breakoutError = 'Unable to start breakout refresh. The backend may be busy or unavailable.';
@@ -203,10 +203,8 @@ export class AppComponent implements OnInit {
       return;
     }
 
-    this.breakoutLoading = true;
-    this.breakoutError = '';
     this.breakoutRefreshMessage = '';
-    this.swingService.getBreakoutScreen(false).subscribe({
+    this.swingService.getBreakoutScreen().subscribe({
       next: (response) => {
         this.breakoutStocks = response ?? [];
         this.breakoutSymbols.clear();

@@ -104,11 +104,6 @@ export interface SingleSymbolBacktestResult {
   data_points?: number;
 }
 
-interface BreakoutCachePayload {
-  timestamp: number;
-  data: BreakoutStock[];
-}
-
 interface SwingCachePayload {
   timestamp: number;
   data: SwingResponse;
@@ -129,10 +124,8 @@ export class SwingService {
   private readonly runBacktestEndpoint = `${environment.apiUrl}/backtest/breakout`;
   private readonly opportunityBacktestEndpoint = `${environment.apiUrl}/backtest/opportunities`;
   private readonly swingCacheKey = 'stockchain_swing_cache_v2';
-  private readonly breakoutCacheKey = 'stockchain_breakout_cache_v2';
   private readonly historyCachePrefix = 'stockchain_history_cache_v1_';
   private readonly swingCacheTtlMs = 24 * 60 * 60 * 1000;
-  private readonly breakoutCacheTtlMs = 24 * 60 * 60 * 1000;
   private readonly historyCacheTtlMs = 12 * 60 * 60 * 1000;
   private readonly defaultHistoryLimit = 100;
 
@@ -149,15 +142,8 @@ export class SwingService {
     );
   }
 
-  getBreakoutScreen(forceRefresh = false): Observable<BreakoutStock[]> {
-    const cachedData = forceRefresh ? null : this.getCachedBreakoutData();
-    if (cachedData) {
-      return of(cachedData);
-    }
-
-    return this.http.get<BreakoutStock[]>(this.breakoutEndpoint).pipe(
-      tap((data) => this.setCachedBreakoutData(data ?? [])),
-    );
+  getBreakoutScreen(): Observable<BreakoutStock[]> {
+    return this.http.get<BreakoutStock[]>(this.breakoutEndpoint);
   }
 
   startBreakoutRefresh(): Observable<{ status: string; message: string }> {
@@ -209,35 +195,6 @@ export class SwingService {
     } catch {
       localStorage.removeItem(this.swingCacheKey);
     }
-  }
-
-  private getCachedBreakoutData(): BreakoutStock[] | null {
-    const raw = localStorage.getItem(this.breakoutCacheKey);
-    if (!raw) {
-      return null;
-    }
-
-    try {
-      const payload = JSON.parse(raw) as BreakoutCachePayload;
-      const isExpired = Date.now() - payload.timestamp > this.breakoutCacheTtlMs;
-      if (isExpired) {
-        localStorage.removeItem(this.breakoutCacheKey);
-        return null;
-      }
-
-      return Array.isArray(payload.data) ? payload.data : null;
-    } catch {
-      localStorage.removeItem(this.breakoutCacheKey);
-      return null;
-    }
-  }
-
-  private setCachedBreakoutData(data: BreakoutStock[]): void {
-    const payload: BreakoutCachePayload = {
-      timestamp: Date.now(),
-      data,
-    };
-    localStorage.setItem(this.breakoutCacheKey, JSON.stringify(payload));
   }
 
   private getHistoryCacheKey(symbol: string): string {
