@@ -187,7 +187,11 @@ export class AppComponent implements OnInit {
     this.breakoutLoading = true;
     this.breakoutError = '';
 
-    this.swingService.getBreakoutScreen(forceRefresh).subscribe({
+    const request = forceRefresh
+      ? this.swingService.refreshBreakoutScreen()
+      : this.swingService.getBreakoutScreen(false);
+
+    request.subscribe({
       next: (response) => {
         this.breakoutStocks = response ?? [];
         this.breakoutSymbols.clear();
@@ -201,7 +205,9 @@ export class AppComponent implements OnInit {
       },
       error: () => {
         this.breakoutSymbols.clear();
-        this.breakoutError = 'Unable to load breakout screener data. Make sure backend is running on :8000.';
+        this.breakoutError = forceRefresh
+          ? 'Unable to refresh breakout screen. The backend may be busy or unavailable.'
+          : 'Unable to load breakout screener data. Make sure backend is running on :8000.';
         this.breakoutLoading = false;
         this.cdr.markForCheck();
       },
