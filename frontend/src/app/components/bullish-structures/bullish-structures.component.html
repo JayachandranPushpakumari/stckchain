@@ -32,6 +32,7 @@
           <span>RSI {{ stock.rsi | number:'1.0-1' }}</span>
         </div>
         <div class="price-grid">
+          <div><span>Pattern Identified</span><strong>{{ stock.structure_label }}</strong></div>
           <div><span>Entry</span><strong>{{ stock.entry_low | currency:'INR':'symbol':'1.2-2' }} – {{ stock.entry_high | currency:'INR':'symbol':'1.2-2' }}</strong></div>
           <div><span>Stop</span><strong class="risk">{{ stock.stop_loss | currency:'INR':'symbol':'1.2-2' }}</strong></div>
           <div><span>Mid-band Target</span><strong>{{ stock.target_1 | currency:'INR':'symbol':'1.2-2' }}</strong></div>
