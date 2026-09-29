@@ -1,0 +1,27 @@
+.structure-shell { display: grid; gap: 1.25rem; }
+.structure-header, .summary, .structure-card { background: #111c2d; border: 1px solid #263b59; border-radius: 18px; }
+.structure-header { display: flex; justify-content: space-between; gap: 1rem; align-items: center; padding: 1.5rem; }
+.structure-header h2, .structure-card h3 { margin: 0; color: #f3f7ff; }
+.structure-header p { color: #9fb2cc; margin-bottom: 0; }
+.kicker { color: #65d6ad !important; font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+button { background: #2d8cff; border: 0; border-radius: 10px; color: white; cursor: pointer; font-weight: 700; padding: .8rem 1rem; }
+button:disabled { cursor: wait; opacity: .6; }
+.summary { display: grid; grid-template-columns: repeat(3, 1fr); padding: 1rem; }
+.summary article { display: grid; gap: .35rem; padding: .5rem 1rem; }
+.summary span, .as-of, .price-grid span { color: #8fa5c0; font-size: .8rem; }
+.summary strong { color: #f3f7ff; font-size: 1.2rem; }
+.structure-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
+.structure-card { padding: 1.25rem; }
+.structure-card header { display: flex; justify-content: space-between; gap: 1rem; }
+.structure-card header span { color: #9fb2cc; font-size: .8rem; }
+.structure-card header > strong { color: #65d6ad; }
+.structure-tags { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1rem 0; }
+.structure-tags span { background: #173d39; border-radius: 999px; color: #78e3bb; font-size: .75rem; padding: .35rem .65rem; }
+.price-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75rem; margin-bottom: 1rem; }
+.price-grid div { background: #0b1421; border-radius: 10px; display: grid; gap: .25rem; padding: .75rem; }
+.price-grid strong { color: #f3f7ff; }
+.price-grid .risk { color: #ff9b9b; }
+ul { color: #c5d2e3; margin: 0; padding-left: 1.25rem; }
+.state { color: #9fb2cc; text-align: center; }
+.error { color: #ff8f8f; }
+@media (max-width: 700px) { .structure-header { align-items: stretch; flex-direction: column; } .summary, .price-grid { grid-template-columns: 1fr; } .structure-grid { grid-template-columns: 1fr; } }

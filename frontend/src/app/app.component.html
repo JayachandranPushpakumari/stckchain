@@ -34,6 +34,13 @@
     </button>
     <button
       class="tab-btn"
+      [class.active]="activeTab === 'bullishStructures'"
+      (click)="setActiveTab('bullishStructures')"
+    >
+      Bullish Structure Entry
+    </button>
+    <button
+      class="tab-btn"
       [class.active]="activeTab === 'swing'"
       (click)="setActiveTab('swing')"
     >
@@ -72,6 +79,7 @@
 
   <app-opportunities *ngIf="!chartOnlyMode && activeTab === 'opportunities'"></app-opportunities>
   <app-bullish-patterns *ngIf="!chartOnlyMode && activeTab === 'bullishPatterns'"></app-bullish-patterns>
+  <app-bullish-structures *ngIf="!chartOnlyMode && activeTab === 'bullishStructures'"></app-bullish-structures>
 
   <section class="stats" *ngIf="!chartOnlyMode && activeTab === 'swing' && !error && stocks.length">
     <article class="stat">

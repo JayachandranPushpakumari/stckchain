@@ -1,0 +1,47 @@
+<section class="structure-shell">
+  <header class="structure-header">
+    <div>
+      <p class="kicker">StockChain Early Entry</p>
+      <h2>Bullish Structure Entry</h2>
+      <p>Fundamental stocks scoring above 60, trading near bullish structural support with improving momentum and at least 2:1 reward to the upper band.</p>
+    </div>
+    <button type="button" (click)="load(true)" [disabled]="loading">{{ loading ? 'Scanning...' : 'Refresh Structures' }}</button>
+  </header>
+
+  <p class="state" *ngIf="loading">Analyzing ranges, channels and momentum...</p>
+  <p class="state error" *ngIf="error">{{ error }}</p>
+
+  <ng-container *ngIf="!loading && result">
+    <section class="summary">
+      <article><span>Fundamental Candidates</span><strong>{{ result.fundamental_candidates }}</strong></article>
+      <article><span>Confirmed Entries</span><strong>{{ result.matched_stocks }}</strong></article>
+      <article><span>Generated</span><strong>{{ result.generated_at | date:'medium' }}</strong></article>
+    </section>
+
+    <p class="state" *ngIf="!result.stocks.length">No fundamentally strong stocks currently have a confirmed lower-band structure entry.</p>
+
+    <section class="structure-grid" *ngIf="result.stocks.length">
+      <article class="structure-card" *ngFor="let stock of result.stocks; trackBy: trackBySymbol">
+        <header>
+          <div><h3>{{ stock.symbol }}</h3><span>Fundamental {{ stock.fundamental_score }}/100</span></div>
+          <strong>{{ stock.current_price | currency:'INR':'symbol':'1.2-2' }}</strong>
+        </header>
+        <div class="structure-tags">
+          <span>{{ stock.structure_label }}</span>
+          <span>Band position {{ stock.band_position | number:'1.0-1' }}%</span>
+          <span>RSI {{ stock.rsi | number:'1.0-1' }}</span>
+        </div>
+        <div class="price-grid">
+          <div><span>Entry</span><strong>{{ stock.entry_low | currency:'INR':'symbol':'1.2-2' }} – {{ stock.entry_high | currency:'INR':'symbol':'1.2-2' }}</strong></div>
+          <div><span>Stop</span><strong class="risk">{{ stock.stop_loss | currency:'INR':'symbol':'1.2-2' }}</strong></div>
+          <div><span>Mid-band Target</span><strong>{{ stock.target_1 | currency:'INR':'symbol':'1.2-2' }}</strong></div>
+          <div><span>Upper-band Target</span><strong>{{ stock.target_2 | currency:'INR':'symbol':'1.2-2' }}</strong></div>
+          <div><span>Lower / Upper Band</span><strong>{{ stock.lower_band | number:'1.2-2' }} / {{ stock.upper_band | number:'1.2-2' }}</strong></div>
+          <div><span>Reward / Risk</span><strong>1 : {{ stock.risk_reward | number:'1.1-2' }}</strong></div>
+        </div>
+        <ul><li *ngFor="let reason of stock.reasons">{{ reason }}</li></ul>
+        <p class="as-of">Price data as of {{ stock.as_of_date | date:'mediumDate' }}</p>
+      </article>
+    </section>
+  </ng-container>
+</section>

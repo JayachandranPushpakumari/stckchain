@@ -8,9 +8,10 @@ import { SeasonalStocksComponent } from './components/seasonal-stocks/seasonal-s
 import { AuthService } from './auth.service';
 import { OpportunitiesComponent } from './components/opportunities/opportunities.component';
 import { BullishPatternsComponent } from './components/bullish-patterns/bullish-patterns.component';
+import { BullishStructuresComponent } from './components/bullish-structures/bullish-structures.component';
 
 type SortOption = 'scoreDesc' | 'scoreAsc' | 'symbolAsc' | 'symbolDesc' | 'promoterHolding' | 'breakoutOverlap' | 'sectorLeader';
-type ScreenerTab = 'opportunities' | 'bullishPatterns' | 'swing' | 'breakout' | 'heatmap' | 'seasonality' | 'backtest';
+type ScreenerTab = 'opportunities' | 'bullishPatterns' | 'bullishStructures' | 'swing' | 'breakout' | 'heatmap' | 'seasonality' | 'backtest';
 type ScoreFilterOption = 'all' | '60' | '70' | '80' | '90';
 type SectorPeriodOption = '1d' | '1w' | '1m' | '3m' | '6m' | '1y';
 
@@ -23,7 +24,7 @@ function dateInputValue(yearOffset = 0): string {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, OpportunitiesComponent, BullishPatternsComponent, SectorHeatmapComponent, SeasonalStocksComponent],
+  imports: [CommonModule, FormsModule, OpportunitiesComponent, BullishPatternsComponent, BullishStructuresComponent, SectorHeatmapComponent, SeasonalStocksComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
