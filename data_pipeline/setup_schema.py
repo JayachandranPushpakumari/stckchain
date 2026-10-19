@@ -100,29 +100,35 @@ with engine.begin() as conn:
 print("All tables created (or already exist).")
 
 # ---------------------------------------------------------------------------
-# 2. Populate `stocks` from fundamentals.xlsx (skip if already populated)
+# 2. Populate `stocks` from fundamentals.xlsx (upsert — safe to re-run)
 # ---------------------------------------------------------------------------
-with engine.connect() as conn:
-    count = conn.execute(text("SELECT COUNT(*) FROM stocks")).scalar()
 
-if count and count > 0:
-    print(f"stocks table already has {count} rows — skipping symbol load.")
+# Extra symbols not in fundamentals.xlsx (e.g. BSE-listed stocks)
+EXTRA_SYMBOLS = [
+    "GANESHHOU.BO",
+]
+
+xlsx_path = Path(__file__).parent / "fundamentals.xlsx"
+df = pd.read_excel(xlsx_path)
+df.columns = df.columns.str.strip().str.lower()
+
+# Accept either 'stockname' or 'symbol' column
+if "stockname" in df.columns:
+    raw_symbols = df["stockname"].dropna().str.strip().unique().tolist()
+elif "symbol" in df.columns:
+    raw_symbols = df["symbol"].dropna().str.strip().unique().tolist()
 else:
-    xlsx_path = Path(__file__).parent / "fundamentals.xlsx"
-    df = pd.read_excel(xlsx_path)
-    df.columns = df.columns.str.strip().str.lower()
+    raise RuntimeError("fundamentals.xlsx has neither 'stockname' nor 'symbol' column")
 
-    # Accept either 'stockname' or 'symbol' column
-    if "stockname" in df.columns:
-        symbols = df["stockname"].dropna().str.strip().unique().tolist()
-    elif "symbol" in df.columns:
-        symbols = df["symbol"].dropna().str.strip().unique().tolist()
-    else:
-        raise RuntimeError("fundamentals.xlsx has neither 'stockname' nor 'symbol' column")
+# Append .NS suffix for Yahoo Finance (NSE equities)
+ns_symbols = [s if "." in s else f"{s}.NS" for s in raw_symbols if s]
 
-    # Append .NS suffix for Yahoo Finance (NSE equities)
-    ns_symbols = [s if s.endswith(".NS") else f"{s}.NS" for s in symbols if s]
+all_symbols = list(dict.fromkeys(ns_symbols + EXTRA_SYMBOLS))  # deduplicate, preserve order
 
-    stocks_df = pd.DataFrame({"symbol": ns_symbols})
-    stocks_df.to_sql("stocks", engine, if_exists="append", index=False, method="multi")
-    print(f"Inserted {len(ns_symbols)} symbols into stocks table.")
+# Upsert: insert new symbols, ignore duplicates (PRIMARY KEY conflict)
+with engine.begin() as conn:
+    conn.execute(
+        text("INSERT INTO stocks (symbol) VALUES (:sym) ON CONFLICT (symbol) DO NOTHING"),
+        [{"sym": s} for s in all_symbols],
+    )
+print(f"Upserted {len(all_symbols)} symbols into stocks table ({len(EXTRA_SYMBOLS)} extra).")
