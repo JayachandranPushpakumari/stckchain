@@ -31,6 +31,12 @@ export class BullishStructuresComponent implements OnInit {
     const request = forceRefresh ? this.service.refresh() : this.service.scan();
     request.subscribe({
       next: (result) => {
+        if (result.status === 'scanning' || result.status === 'not_started') {
+          this.loading = true;
+          this.cdr.markForCheck();
+          globalThis.setTimeout(() => this.load(false), 5000);
+          return;
+        }
         this.result = result;
         this.loading = false;
         this.cdr.markForCheck();

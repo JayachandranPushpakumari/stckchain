@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from threading import Lock
 
 import numpy as np
 import pandas as pd
@@ -15,6 +16,8 @@ MIN_RISK_REWARD = 2.0
 
 _bullish_structures_cache: dict | None = None
 _bullish_structures_cached_at: datetime | None = None
+_scan_running = False
+_scan_lock = Lock()
 
 
 def _cache_is_fresh():
@@ -23,6 +26,36 @@ def _cache_is_fresh():
         and _bullish_structures_cached_at is not None
         and _bullish_structures_cached_at.date() == datetime.now(timezone.utc).date()
     )
+
+
+def get_bullish_structure_screen():
+    if _cache_is_fresh():
+        return _bullish_structures_cache
+    return {
+        "status": "scanning" if _scan_running else "not_started",
+        "generated_at": None,
+        "fundamental_candidates": 0,
+        "matched_stocks": 0,
+        "stocks": [],
+    }
+
+
+def start_bullish_structure_scan():
+    global _scan_running
+    with _scan_lock:
+        if _scan_running:
+            return False
+        _scan_running = True
+        return True
+
+
+def run_bullish_structure_scan():
+    global _scan_running
+    try:
+        scan_bullish_structures(force_refresh=True)
+    finally:
+        with _scan_lock:
+            _scan_running = False
 
 
 def _band_line(frame, column, quantile):

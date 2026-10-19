@@ -28,7 +28,8 @@ export interface BullishStructureStock {
 }
 
 export interface BullishStructureResponse {
-  generated_at: string;
+  status?: 'scanning' | 'not_started';
+  generated_at: string | null;
   fundamental_candidates: number;
   matched_stocks: number;
   stocks: BullishStructureStock[];
