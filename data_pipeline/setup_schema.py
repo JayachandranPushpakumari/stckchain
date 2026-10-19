@@ -41,12 +41,6 @@ CREATE TABLE IF NOT EXISTS price_data (
     PRIMARY KEY (date, symbol)
 );
 
-CREATE TABLE IF NOT EXISTS fundamental_scores (
-    symbol      TEXT,
-    total_score NUMERIC,
-    date        DATE
-);
-
 CREATE TABLE IF NOT EXISTS relative_strength (
     symbol   TEXT,
     rs_score NUMERIC

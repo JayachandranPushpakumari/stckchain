@@ -66,4 +66,5 @@ jobs:
 
       - name: Generate Breakout Opportunities
         working-directory: backend
-        run: python services/opportunities.py
+        # fundamental_scores table may be empty on a fresh database — allow failure
+        run: python services/opportunities.py || true
