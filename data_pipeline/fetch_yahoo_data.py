@@ -38,10 +38,17 @@ for sym in symbols:
             "Adj Close": "adj_close"
         }, inplace=True)
 
-        clean_symbol = sym.replace(".NS", "")
+        clean_symbol = sym.replace(".NS", "").replace(".BO", "")
         data["symbol"] = clean_symbol
 
         data = data[["date", "symbol", "open", "high", "low", "close", "volume"]]
+
+        # Drop incomplete bars: close must be a positive number
+        data = data[data["close"].notna() & (data["close"] > 0)]
+
+        if data.empty:
+            print(f"No valid bars for {clean_symbol} after filtering")
+            continue
 
         # Remove existing rows in the fetched range so re-runs don't duplicate
         with engine.begin() as conn:
