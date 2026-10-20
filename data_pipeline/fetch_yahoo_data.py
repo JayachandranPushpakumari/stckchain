@@ -9,10 +9,22 @@ from db import engine
 # symbols = pd.read_sql(f"SELECT symbol FROM stocks WHERE symbol = '{stock_symbol}'", engine)["symbol"].tolist()
 symbols = pd.read_sql("SELECT distinct symbol FROM stocks", engine)["symbol"].tolist()
 
-# Rolling window: fetch last ~30 days up to today so daily runs stay current.
-# yfinance `end` is exclusive, so add one day to include today's bar.
+# Determine fetch window.
+# If price_data has less than 180 calendar days of history, do a one-time
+# historical backfill (400 days) so indicators like relative strength and
+# MA200 have enough data. On subsequent daily runs use a 30-day rolling window.
 end_date = date.today() + timedelta(days=1)
-start_date = end_date - timedelta(days=30)
+
+with engine.connect() as _conn:
+    oldest_date = _conn.execute(
+        text("SELECT MIN(date) FROM price_data WHERE symbol <> '^NSEI'")
+    ).scalar()
+
+if oldest_date is None or (date.today() - oldest_date).days < 180:
+    start_date = end_date - timedelta(days=1826)  # ~5 years
+    print("Historical backfill mode: fetching up to 5 years of price data.")
+else:
+    start_date = end_date - timedelta(days=30)
 
 for sym in symbols:
     print(f"Fetching {sym}...")
