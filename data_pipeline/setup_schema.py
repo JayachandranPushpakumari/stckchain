@@ -67,25 +67,36 @@ CREATE TABLE IF NOT EXISTS sector_leaders (
 );
 
 CREATE TABLE IF NOT EXISTS opportunity_runs (
-    id               SERIAL PRIMARY KEY,
-    generated_at     TIMESTAMP,
-    run_date         DATE,
-    market_regime    TEXT,
-    total_candidates INTEGER,
-    published_count  INTEGER
+    id            SERIAL PRIMARY KEY,
+    setup_type    TEXT,
+    market_regime TEXT,
+    stage_counts  JSONB,
+    minimum_score NUMERIC,
+    generated_at  TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS opportunities (
     run_id            INTEGER,
     symbol            TEXT,
-    pattern           TEXT,
+    setup_type        TEXT,
+    status            TEXT,
+    rank              INTEGER,
+    score             NUMERIC,
+    current_price     NUMERIC,
     entry_low         NUMERIC,
     entry_high        NUMERIC,
+    target_1          NUMERIC,
+    target_2          NUMERIC,
     stop_loss         NUMERIC,
-    target            NUMERIC,
     risk_reward       NUMERIC,
     fundamental_score NUMERIC,
-    signal_date       DATE
+    technical_score   NUMERIC,
+    momentum_score    NUMERIC,
+    liquidity_score   NUMERIC,
+    regime_score      NUMERIC,
+    risk_reward_score NUMERIC,
+    market_regime     TEXT,
+    reasons           JSONB
 );
 """
 
