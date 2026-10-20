@@ -16,14 +16,18 @@ MIN_HISTORY_ROWS = 250
 
 
 def _recent_prices():
+    # LATERAL avoids sorting the whole table; uses the (symbol, date) index
+    # to fetch the last LOOKBACK_ROWS rows per symbol directly.
     query = text("""
-    SELECT date, symbol, open, high, low, close, volume
-    FROM (
-        SELECT date, symbol, open, high, low, close, volume,
-               ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY date DESC) AS rn
+    SELECT p.date, s.symbol, p.open, p.high, p.low, p.close, p.volume
+    FROM (SELECT DISTINCT symbol FROM price_data WHERE symbol <> '^NSEI') s
+    CROSS JOIN LATERAL (
+        SELECT date, open, high, low, close, volume
         FROM price_data
-    ) recent
-    WHERE rn <= :lookback
+        WHERE symbol = s.symbol
+        ORDER BY date DESC
+        LIMIT :lookback
+    ) p
     """)
     df = pd.read_sql(query, engine, params={"lookback": LOOKBACK_ROWS})
     return df.sort_values(["symbol", "date"]).reset_index(drop=True)

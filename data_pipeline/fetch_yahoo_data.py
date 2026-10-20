@@ -11,8 +11,9 @@ symbols = pd.read_sql("SELECT distinct symbol FROM stocks", engine)["symbol"].to
 
 # Determine fetch window.
 # If price_data has less than 180 calendar days of history, do a one-time
-# historical backfill (400 days) so indicators like relative strength and
-# MA200 have enough data. On subsequent daily runs use a 30-day rolling window.
+# historical backfill (~5 years / 1826 days) so indicators like relative
+# strength (150 rows), MA200, and breakout detection (300 rows) all have
+# enough data. On subsequent daily runs use a 30-day rolling window.
 end_date = date.today() + timedelta(days=1)
 
 with engine.connect() as _conn:

@@ -41,6 +41,10 @@ CREATE TABLE IF NOT EXISTS price_data (
     PRIMARY KEY (date, symbol)
 );
 
+-- Index to speed up LATERAL / window queries that fetch recent rows per symbol
+CREATE INDEX IF NOT EXISTS idx_price_data_symbol_date
+    ON price_data (symbol, date DESC);
+
 CREATE TABLE IF NOT EXISTS relative_strength (
     symbol   TEXT,
     rs_score NUMERIC
