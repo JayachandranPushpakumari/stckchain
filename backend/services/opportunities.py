@@ -25,36 +25,59 @@ MAX_PATTERN_BREAKOUT_AGE_SESSIONS = 1
 
 
 def _eligible_universe():
+    # Uses LATERAL joins with the (symbol, date DESC) index to avoid
+    # window-function temp sorts that exhaust PostgreSQL disk on free-tier.
     return pd.read_sql(
         text("""
         WITH market_date AS (
             SELECT MAX(date) AS latest_date FROM price_data WHERE symbol <> '^NSEI'
-        ), recent AS (
-            SELECT p.symbol, p.date, p.open, p.high, p.low, p.close, p.volume,
-                   ROW_NUMBER() OVER (PARTITION BY p.symbol ORDER BY p.date DESC) AS rn
-            FROM price_data p, market_date m
-            WHERE p.symbol <> '^NSEI' AND p.date >= m.latest_date - INTERVAL '400 days'
+        ), symbols AS (
+            SELECT DISTINCT symbol FROM price_data WHERE symbol <> '^NSEI'
         ), quality AS (
-            SELECT symbol,
-                   COUNT(*) FILTER (WHERE rn <= 300) AS history_rows,
-                   COUNT(*) FILTER (WHERE rn <= 250 AND open > 0 AND high > 0 AND low > 0 AND close > 0 AND volume > 0) AS valid_rows,
-                   MAX(date) AS latest_date
-            FROM recent
-            WHERE rn <= 300
-            GROUP BY symbol
+            SELECT s.symbol,
+                   p300.history_rows,
+                   p300.latest_date,
+                   p250.valid_rows
+            FROM symbols s
+            CROSS JOIN LATERAL (
+                SELECT COUNT(*)           AS history_rows,
+                       MAX(date)          AS latest_date
+                FROM (
+                    SELECT date FROM price_data
+                    WHERE symbol = s.symbol
+                    ORDER BY date DESC
+                    LIMIT 300
+                ) t
+            ) p300
+            CROSS JOIN LATERAL (
+                SELECT COUNT(*) FILTER (
+                    WHERE open > 0 AND high > 0 AND low > 0
+                      AND close > 0 AND volume > 0
+                ) AS valid_rows
+                FROM (
+                    SELECT open, high, low, close, volume
+                    FROM price_data
+                    WHERE symbol = s.symbol
+                    ORDER BY date DESC
+                    LIMIT 250
+                ) t
+            ) p250
         ), liquidity AS (
-            SELECT symbol,
-                   PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY close * volume) FILTER (WHERE rn <= 20) AS median_turnover,
-                   PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY volume) FILTER (WHERE rn <= 20) AS median_volume
-            FROM recent
-            WHERE rn <= 20 AND close > 0 AND volume > 0
-            GROUP BY symbol
+            SELECT s.symbol,
+                   PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY p.close * p.volume) AS median_turnover,
+                   PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY p.volume)           AS median_volume
+            FROM symbols s
+            CROSS JOIN LATERAL (
+                SELECT close, volume FROM price_data
+                WHERE symbol = s.symbol AND close > 0 AND volume > 0
+                ORDER BY date DESC
+                LIMIT 20
+            ) p
+            GROUP BY s.symbol
         ), latest_scores AS (
             SELECT DISTINCT ON (symbol) symbol, total_score
             FROM fundamental_scores
             ORDER BY symbol, screened_at DESC
-        ), market_date_value AS (
-            SELECT latest_date FROM market_date
         )
         SELECT q.symbol, q.history_rows, q.valid_rows, q.latest_date,
                l.median_turnover, l.median_volume, s.total_score,
@@ -65,7 +88,7 @@ def _eligible_universe():
         FROM quality q
         JOIN liquidity l ON l.symbol = q.symbol
         LEFT JOIN latest_scores s ON s.symbol = q.symbol
-        CROSS JOIN market_date_value m
+        CROSS JOIN (SELECT latest_date FROM market_date) m
         """),
         engine,
         params={
