@@ -247,3 +247,8 @@ def calculate_fundamental_score(save_to_db=True):
         _save_fundamental_scores(symbols)
 
     return {"symbols": symbols}
+
+
+if __name__ == "__main__":
+    result = calculate_fundamental_score(save_to_db=True)
+    print(f"Scored {len(result['symbols'])} stocks and saved to fundamental_scores.")
