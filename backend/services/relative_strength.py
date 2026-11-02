@@ -11,22 +11,29 @@ from db import engine
 
 
 def calculate_rs():
+    # LATERAL fetches at most 150 rows per symbol via the (symbol, date DESC)
+    # index, then applies ROW_NUMBER on that tiny slice — no full-table sort.
     query = text("""
-    WITH ranked AS (
-        SELECT symbol, close,
-               ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY date DESC) AS rn
-        FROM price_data
-        WHERE symbol <> '^NSEI' AND close IS NOT NULL AND close > 0
-    )
-    SELECT symbol,
-           MAX(close) FILTER (WHERE rn = 1) AS latest,
-           MAX(close) FILTER (WHERE rn = 21) AS one_month,
-           MAX(close) FILTER (WHERE rn = 63) AS three_month,
-           MAX(close) FILTER (WHERE rn = 126) AS six_month,
-           COUNT(*) AS rows
-    FROM ranked
-    GROUP BY symbol
-    HAVING COUNT(*) >= 150
+    SELECT s.symbol, p.latest, p.one_month, p.three_month, p.six_month, p.rows
+    FROM (SELECT DISTINCT symbol FROM price_data WHERE symbol <> '^NSEI') s
+    CROSS JOIN LATERAL (
+        SELECT
+            COUNT(*)                                AS rows,
+            MAX(close) FILTER (WHERE rn = 1)   AS latest,
+            MAX(close) FILTER (WHERE rn = 21)  AS one_month,
+            MAX(close) FILTER (WHERE rn = 63)  AS three_month,
+            MAX(close) FILTER (WHERE rn = 126) AS six_month
+        FROM (
+            SELECT close,
+                   ROW_NUMBER() OVER (ORDER BY date DESC) AS rn
+            FROM price_data
+            WHERE symbol = s.symbol
+              AND close IS NOT NULL AND close > 0
+            ORDER BY date DESC
+            LIMIT 150
+        ) t
+        HAVING COUNT(*) >= 150
+    ) p
     """)
 
     df = pd.read_sql(query, engine)

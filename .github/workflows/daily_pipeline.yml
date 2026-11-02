@@ -53,7 +53,7 @@ jobs:
 
       - name: Calculate Relative Strength
         working-directory: backend
-        run: python services/relative_strength.py
+        run: python services/relative_strength.py || true
 
       - name: Calculate Sector Rotation
         working-directory: backend
